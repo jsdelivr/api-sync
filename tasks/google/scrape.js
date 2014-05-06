@@ -3,9 +3,26 @@
 var path = require('path');
 
 var cheerio = require('cheerio');
+var request = require('request');
 
 
-module.exports = function(data) {
+module.exports = function(cb) {
+    request.get({
+        url: 'https://developers.google.com/speed/libraries/devguide'
+    }, function(err, res, data) {
+        if(err || !data) {
+            console.error('Failed to update google data!', err, data);
+
+            return cb(err);
+        }
+
+        console.log('Fetched google data');
+
+        cb(null, scrape(data));
+    });
+};
+
+function scrape(data) {
     var $ = cheerio.load(data);
     var libs = $('div[itemprop="articleBody"] div');
     var ret = [];
@@ -28,7 +45,7 @@ module.exports = function(data) {
     });
 
     return ret;
-};
+}
 
 function getVersions($e) {
     return $e.find('.versions').text().split(',').filter(id).map(trim);
