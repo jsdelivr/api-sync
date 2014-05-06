@@ -36,7 +36,8 @@ function main(cb) {
 
 function initTasks() {
     taskist(config.tasks, tasks, {
-        instant: true
+        instant: true,
+        series: true
     });
 }
 
