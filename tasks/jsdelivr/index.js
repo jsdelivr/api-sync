@@ -30,6 +30,7 @@ module.exports = function(github) {
 
                     library.zip = library.name + '.zip';
                     library.versions = sortVersions(library.versions);
+                    library.lastversion = library.versions[0];
 
                     sugar.update(Library, d._id, library, cb);
                 });

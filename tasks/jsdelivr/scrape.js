@@ -88,8 +88,6 @@ module.exports = function(github) {
             }
 
             cb(null, values(ret).map(function(v) {
-                v.lastversion = v.versions.slice(-1)[0];
-
                 // convert assets to v1 format
                 var assets = [];
 
