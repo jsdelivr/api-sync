@@ -4,6 +4,8 @@ var fp = require('annofp');
 var prop = fp.prop;
 var values = fp.values;
 
+var is = require('../../lib/utils').is;
+
 
 module.exports = function(github) {
     return function(cb) {
@@ -138,9 +140,3 @@ module.exports = function(github) {
         });
     }
 };
-
-function is(prop, val) {
-    return function(v) {
-        return v[prop] === val;
-    };
-}

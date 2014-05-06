@@ -5,6 +5,11 @@ var not = fp.not;
 var prop = fp.prop;
 var values = fp.values;
 
+var utils = require('../../lib/utils');
+var contains = utils.contains;
+var is = utils.is;
+var startsWith = utils.startsWith;
+
 
 module.exports = function(github) {
     return function(cb) {
@@ -103,21 +108,3 @@ module.exports = function(github) {
         });
     }
 };
-
-function is(prop, val) {
-    return function(v) {
-        return v[prop] === val;
-    };
-}
-
-function contains(str) {
-    return function(v) {
-        return v.indexOf(str) >= 0;
-    };
-}
-
-function startsWith(str) {
-    return function(v) {
-        return v.indexOf(str) === 0;
-    };
-}

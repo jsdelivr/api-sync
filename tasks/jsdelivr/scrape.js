@@ -11,6 +11,11 @@ var values = fp.values;
 var request = require('request');
 var ini = require('ini');
 
+var utils = require('../../lib/utils');
+var contains = utils.contains;
+var is = utils.is;
+
+
 module.exports = function(github) {
     return function(cb) {
         getFiles(function(err, files) {
@@ -150,15 +155,3 @@ module.exports = function(github) {
         });
     }
 };
-
-function is(prop, val) {
-    return function(v) {
-        return v[prop] === val;
-    };
-}
-
-function contains(str) {
-    return function(v) {
-        return v.indexOf(str) >= 0;
-    };
-}
