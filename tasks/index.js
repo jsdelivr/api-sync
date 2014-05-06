@@ -1,11 +1,12 @@
 'use strict';
 
 module.exports = function(github) {
-    return {
-        bootstrap: require('./bootstrap')(github),
-        cdnjs: require('./cdnjs'),
-        google: require('./google'),
-        jquery: require('./jquery')(github),
-        jsdelivr: require('./jsdelivr')(github)
-    };
-}
+    var cdns = ['bootstrap', 'cdnjs', 'google', 'jquery', 'jsdelivr'];
+    var ret = {};
+
+    cdns.forEach(function(cdn) {
+        ret[cdn] = require('./task')(cdn, require('./' + cdn)(github));
+    });
+
+    return ret;
+};

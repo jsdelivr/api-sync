@@ -11,7 +11,7 @@ var values = fp.values;
 var request = require('request');
 var ini = require('ini');
 
-var utils = require('../../lib/utils');
+var utils = require('../lib/utils');
 var contains = utils.contains;
 var is = utils.is;
 

@@ -6,20 +6,22 @@ var cheerio = require('cheerio');
 var request = require('request');
 
 
-module.exports = function(cb) {
-    request.get({
-        url: 'https://developers.google.com/speed/libraries/devguide'
-    }, function(err, res, data) {
-        if(err || !data) {
-            console.error('Failed to update google data!', err, data);
+module.exports = function() {
+    return function(cb) {
+        request.get({
+            url: 'https://developers.google.com/speed/libraries/devguide'
+        }, function(err, res, data) {
+            if(err || !data) {
+                console.error('Failed to update google data!', err, data);
 
-            return cb(err);
-        }
+                return cb(err);
+            }
 
-        console.log('Fetched google data');
+            console.log('Fetched google data');
 
-        cb(null, scrape(data));
-    });
+            cb(null, scrape(data));
+        });
+    };
 };
 
 function scrape(data) {

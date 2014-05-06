@@ -5,7 +5,7 @@ var not = fp.not;
 var prop = fp.prop;
 var values = fp.values;
 
-var utils = require('../../lib/utils');
+var utils = require('../lib/utils');
 var contains = utils.contains;
 var is = utils.is;
 var startsWith = utils.startsWith;

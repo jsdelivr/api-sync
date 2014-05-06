@@ -4,7 +4,7 @@ var fp = require('annofp');
 var prop = fp.prop;
 var values = fp.values;
 
-var is = require('../../lib/utils').is;
+var is = require('../lib/utils').is;
 
 
 module.exports = function(github) {
