@@ -8,10 +8,10 @@ module.exports = {
         password: ''
     },
     tasks: {
-        bootstrap: {minute: 1},
-        cdnjs: {minute: 1},
-        google: {minute: 1},
-        jsdelivr: {minute: 1},
-        jquery: {minute: 1}
+        bootstrap: {minute: 0},
+        cdnjs: {minute: 2},
+        google: {minute: 4},
+        jsdelivr: {minute: 7},
+        jquery: {minute: 5}
     }
 };
