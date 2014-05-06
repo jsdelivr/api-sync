@@ -1,7 +1,7 @@
 'use strict';
 
 var async = require('async');
-var sugar = require('object-sugar');
+var sugar = require('mongoose-sugar');
 
 var scrape = require('../lib/scrape_bootstrap');
 var sortVersions = require('../lib/sort_versions');

@@ -1,5 +1,12 @@
 module.exports = {
     port: 8000,
+    mongo: {
+        hostname: 'localhost',
+        port: 27017,
+        db: 'jsdelivr_api_sync',
+        username: '',
+        password: ''
+    },
     tasks: {
         bootstrap: {minute: 1},
         cdnjs: {minute: 1},

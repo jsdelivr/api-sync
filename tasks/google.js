@@ -2,7 +2,7 @@
 
 var async = require('async');
 var request = require('request');
-var sugar = require('object-sugar');
+var sugar = require('mongoose-sugar');
 
 var scrape = require('../lib/scrape_google');
 var sortVersions = require('../lib/sort_versions');
