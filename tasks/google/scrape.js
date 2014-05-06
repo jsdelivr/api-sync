@@ -22,7 +22,6 @@ module.exports = function(data) {
             name: name,
             mainfile: mainfile,
             homepage: $(dd[1]).find('a').attr('href'),
-            lastversion: versions.slice(-1)[0],
             assets: getAssets(mainfile, versions, hasMin),
             versions: versions
         });

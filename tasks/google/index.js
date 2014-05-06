@@ -34,6 +34,7 @@ module.exports = function(cb) {
                 }
 
                 library.versions = sortVersions(library.versions);
+                library.lastversion = library.versions[0];
 
                 sugar.update(Library, d._id, library, cb);
             });
