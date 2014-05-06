@@ -1,31 +1,24 @@
 'use strict';
 
 var async = require('async');
-var request = require('request');
 var sugar = require('mongoose-sugar');
 
-var scrape = require('../lib/scrape_google');
-var sortVersions = require('../lib/sort_versions');
-var Library = require('../schemas').googleLibrary;
+var scrape = require('./scrape');
+var sortVersions = require('../../lib/sort_versions');
+var Library = require('../../schemas').bootstrapLibrary;
 
 
 module.exports = function(cb) {
-    var url = 'https://developers.google.com/speed/libraries/devguide';
+    console.log('Starting to update bootstrap data');
 
-    console.log('Starting to update google data');
-
-    request.get({
-        url: url,
-    }, function(err, res, data) {
-        if(err || !data) {
-            console.error('Failed to update google data!', err, data);
+    scrape(function(err, files) {
+        if(err) {
+            console.error('Failed to update bootstrap data!', err);
 
             return cb(err);
         }
 
-        console.log('Fetched google data');
-
-        async.each(scrape(data), function(library, cb) {
+        async.each(files, function(library, cb) {
             sugar.getOrCreate(Library, {
                 name: library.name
             }, function(err, d) {
@@ -44,10 +37,9 @@ module.exports = function(cb) {
                 return cb(err);
             }
 
-            console.log('Updated google data');
+            console.log('Updated bootstrap data');
 
             cb();
         });
     });
 };
-

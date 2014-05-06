@@ -1,24 +1,31 @@
 'use strict';
 
 var async = require('async');
+var request = require('request');
 var sugar = require('mongoose-sugar');
 
-var scrape = require('../lib/scrape_bootstrap');
-var sortVersions = require('../lib/sort_versions');
-var Library = require('../schemas').bootstrapLibrary;
+var sortVersions = require('../../lib/sort_versions');
+var Library = require('../../schemas').jsdelivrLibrary;
 
 
 module.exports = function(cb) {
-    console.log('Starting to update bootstrap data');
+    var url = 'http://www.jsdelivr.com/packagesmain.php';
 
-    scrape(function(err, files) {
-        if(err) {
-            console.error('Failed to update bootstrap data!', err);
+    console.log('Starting to update jsdelivr data');
+
+    request.get({
+        url: url,
+        json: true
+    }, function(err, res, data) {
+        if(err || !data || !data.package) {
+            console.error('Failed to update jsdelivr data!', err, data);
 
             return cb(err);
         }
 
-        async.each(files, function(library, cb) {
+        console.log('Fetched jsdelivr data');
+
+        async.each(data.package, function(library, cb) {
             sugar.getOrCreate(Library, {
                 name: library.name
             }, function(err, d) {
@@ -37,9 +44,10 @@ module.exports = function(cb) {
                 return cb(err);
             }
 
-            console.log('Updated bootstrap data');
+            console.log('Updated jsdelivr data');
 
             cb();
         });
     });
 };
+

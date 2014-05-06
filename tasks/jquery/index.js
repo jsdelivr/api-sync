@@ -3,9 +3,9 @@
 var async = require('async');
 var sugar = require('mongoose-sugar');
 
-var scrape = require('../lib/scrape_jquery');
-var sortVersions = require('../lib/sort_versions');
-var Library = require('../schemas').jqueryLibrary;
+var scrape = require('./scrape');
+var sortVersions = require('../../lib/sort_versions');
+var Library = require('../../schemas').jqueryLibrary;
 
 
 module.exports = function(cb) {

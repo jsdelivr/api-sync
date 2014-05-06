@@ -5,8 +5,8 @@ var request = require('request');
 var sugar = require('mongoose-sugar');
 var prop = require('annofp').prop;
 
-var sortVersions = require('../lib/sort_versions');
-var Library = require('../schemas').cdnjsLibrary;
+var sortVersions = require('../../lib/sort_versions');
+var Library = require('../../schemas').cdnjsLibrary;
 
 
 module.exports = function(cb) {

@@ -4,28 +4,28 @@ var async = require('async');
 var request = require('request');
 var sugar = require('mongoose-sugar');
 
-var sortVersions = require('../lib/sort_versions');
-var Library = require('../schemas').jsdelivrLibrary;
+var scrape = require('./scrape');
+var sortVersions = require('../../lib/sort_versions');
+var Library = require('../../schemas').googleLibrary;
 
 
 module.exports = function(cb) {
-    var url = 'http://www.jsdelivr.com/packagesmain.php';
+    var url = 'https://developers.google.com/speed/libraries/devguide';
 
-    console.log('Starting to update jsdelivr data');
+    console.log('Starting to update google data');
 
     request.get({
         url: url,
-        json: true
     }, function(err, res, data) {
-        if(err || !data || !data.package) {
-            console.error('Failed to update jsdelivr data!', err, data);
+        if(err || !data) {
+            console.error('Failed to update google data!', err, data);
 
             return cb(err);
         }
 
-        console.log('Fetched jsdelivr data');
+        console.log('Fetched google data');
 
-        async.each(data.package, function(library, cb) {
+        async.each(scrape(data), function(library, cb) {
             sugar.getOrCreate(Library, {
                 name: library.name
             }, function(err, d) {
@@ -44,7 +44,7 @@ module.exports = function(cb) {
                 return cb(err);
             }
 
-            console.log('Updated jsdelivr data');
+            console.log('Updated google data');
 
             cb();
         });
