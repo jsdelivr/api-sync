@@ -1,7 +1,6 @@
 'use strict';
 
 var fp = require('annofp');
-var each = fp.each;
 var not = fp.not;
 var prop = fp.prop;
 var values = fp.values;
