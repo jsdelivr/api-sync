@@ -5,7 +5,23 @@ var taskist = require('taskist');
 var sugar = require('mongoose-sugar');
 
 var config = require('./config');
-var tasks = require('./tasks');
+
+var GitHubApi = require('github');
+
+var github = new GitHubApi({
+    version: '3.0.0',
+    protocol: 'https',
+    timeout: 5000
+});
+
+if(config.githubToken) {
+    github.authenticate({
+        type: 'oauth',
+        token: config.githubToken
+    });
+}
+
+var tasks = require('./tasks')(github);
 
 
 if(require.main === module) {

@@ -1,9 +1,11 @@
 'use strict';
 
-module.exports = {
-    bootstrap: require('./bootstrap'),
-    cdnjs: require('./cdnjs'),
-    google: require('./google'),
-    jquery: require('./jquery'),
-    jsdelivr: require('./jsdelivr')
-};
+module.exports = function(github) {
+    return {
+        bootstrap: require('./bootstrap')(github),
+        cdnjs: require('./cdnjs'),
+        google: require('./google'),
+        jquery: require('./jquery')(github),
+        jsdelivr: require('./jsdelivr')(github)
+    };
+}

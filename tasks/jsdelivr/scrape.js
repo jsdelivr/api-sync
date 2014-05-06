@@ -10,154 +10,148 @@ var values = fp.values;
 
 var request = require('request');
 var ini = require('ini');
-var GitHubApi = require('github');
 
-var github = new GitHubApi({
-    version: '3.0.0',
-    protocol: 'https',
-    timeout: 5000
-});
-
-
-module.exports = function main(cb) {
-    getFiles(function(err, files) {
-        if(err) {
-            return cb(err);
-        }
-
-        parse(files, cb);
-    });
-};
-
-function parse(files, cb) {
-    var base = 'https://raw.githubusercontent.com/jsdelivr/jsdelivr/master/files/';
-    var ret = {};
-
-    async.eachLimit(files, 4, function(file, cb) {
-        var parts = file.split('/');
-        var name = parts[0];
-        var filename, version;
-
-        if(parts.length === 2) {
-            if(parts[1] === 'info.ini') {
-                return parseIni(url.resolve(base, file), function(err, d) {
-                    if(err) {
-                        return setImmediate(cb.bind(null, err));
-                    }
-
-                    if(!(name in ret)) {
-                        ret[name] = {
-                            name: name,
-                            versions: [],
-                            assets: {} // version -> assets
-                        };
-                    }
-
-                    ret[name] = extend(ret[name], d);
-
-                    setImmediate(cb);
-                });
+module.exports = function(github) {
+    return function(cb) {
+        getFiles(function(err, files) {
+            if(err) {
+                return cb(err);
             }
 
-            return setImmediate(cb);
-        }
-        else {
-            version = parts[1];
-            filename = parts.slice(2).join('/');
-        }
+            parse(files, cb);
+        });
+    };
 
-        if(!(name in ret)) {
-            ret[name] = {
-                name: name,
-                versions: [],
-                assets: {} // version -> assets
-            };
-        }
+    function parse(files, cb) {
+        var base = 'https://raw.githubusercontent.com/jsdelivr/jsdelivr/master/files/';
+        var ret = {};
 
-        var lib = ret[name];
+        async.eachLimit(files, 4, function(file, cb) {
+            var parts = file.split('/');
+            var name = parts[0];
+            var filename, version;
 
-        // version
-        if(lib.versions.indexOf(version) === -1) {
-            lib.versions.push(version);
-        }
+            if(parts.length === 2) {
+                if(parts[1] === 'info.ini') {
+                    return parseIni(url.resolve(base, file), function(err, d) {
+                        if(err) {
+                            return setImmediate(cb.bind(null, err));
+                        }
 
-        // assets
-        if(!(version in lib.assets)) {
-            lib.assets[version] = [];
-        }
+                        if(!(name in ret)) {
+                            ret[name] = {
+                                name: name,
+                                versions: [],
+                                assets: {} // version -> assets
+                            };
+                        }
 
-        lib.assets[version].push(filename);
+                        ret[name] = extend(ret[name], d);
 
-        setImmediate(cb);
-    }, function(err) {
-        if(err) {
-            return cb(err);
-        }
+                        setImmediate(cb);
+                    });
+                }
 
-        cb(null, values(ret).map(function(v) {
-            v.lastversion = v.versions.slice(-1)[0];
+                return setImmediate(cb);
+            }
+            else {
+                version = parts[1];
+                filename = parts.slice(2).join('/');
+            }
 
-            // convert assets to v1 format
-            var assets = [];
+            if(!(name in ret)) {
+                ret[name] = {
+                    name: name,
+                    versions: [],
+                    assets: {} // version -> assets
+                };
+            }
 
-            fp.each(function(version, files) {
-                assets.push({
-                    version: version,
-                    files: files
-                });
-            }, v.assets);
+            var lib = ret[name];
 
-            v.assets = assets;
+            // version
+            if(lib.versions.indexOf(version) === -1) {
+                lib.versions.push(version);
+            }
 
-            return v;
-        }));
-    });
-}
+            // assets
+            if(!(version in lib.assets)) {
+                lib.assets[version] = [];
+            }
 
-function parseIni(url, cb) {
-    request.get(url, function(err, res, data) {
-        if(err) {
-            return cb(err);
-        }
+            lib.assets[version].push(filename);
 
-        cb(null, ini.parse(data));
-    });
-}
+            setImmediate(cb);
+        }, function(err) {
+            if(err) {
+                return cb(err);
+            }
 
-function getFiles(cb) {
-    github.repos.getContent({
-        user: 'jsdelivr',
-        repo: 'jsdelivr',
-        path: ''
-    }, function(err, res) {
-        if(err) {
-            return cb(err);
-        }
+            cb(null, values(ret).map(function(v) {
+                v.lastversion = v.versions.slice(-1)[0];
 
-        var sha = res.filter(function(v) {
-            return v.name === 'files';
-        })[0].sha;
+                // convert assets to v1 format
+                var assets = [];
 
-        github.gitdata.getTree({
+                fp.each(function(version, files) {
+                    assets.push({
+                        version: version,
+                        files: files
+                    });
+                }, v.assets);
+
+                v.assets = assets;
+
+                return v;
+            }));
+        });
+    }
+
+    function parseIni(url, cb) {
+        request.get(url, function(err, res, data) {
+            if(err) {
+                return cb(err);
+            }
+
+            cb(null, ini.parse(data));
+        });
+    }
+
+    function getFiles(cb) {
+        github.repos.getContent({
             user: 'jsdelivr',
             repo: 'jsdelivr',
-            sha: sha,
-            recursive: 1
+            path: ''
         }, function(err, res) {
             if(err) {
                 return cb(err);
             }
 
-            if(!res.tree) {
-                return cb(new Error('Missing tree'));
-            }
+            var sha = res.filter(function(v) {
+                return v.name === 'files';
+            })[0].sha;
 
-            // mode, 100644 === blob that is file
-            cb(null, res.tree.filter(is('mode', '100644')).map(prop('path')).
-                filter(contains('/')));
+            github.gitdata.getTree({
+                user: 'jsdelivr',
+                repo: 'jsdelivr',
+                sha: sha,
+                recursive: 1
+            }, function(err, res) {
+                if(err) {
+                    return cb(err);
+                }
+
+                if(!res.tree) {
+                    return cb(new Error('Missing tree'));
+                }
+
+                // mode, 100644 === blob that is file
+                cb(null, res.tree.filter(is('mode', '100644')).map(prop('path')).
+                    filter(contains('/')));
+            });
         });
-    });
-}
+    }
+};
 
 function is(prop, val) {
     return function(v) {

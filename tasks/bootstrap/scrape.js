@@ -5,112 +5,106 @@ var not = fp.not;
 var prop = fp.prop;
 var values = fp.values;
 
-var GitHubApi = require('github');
 
-var github = new GitHubApi({
-    version: '3.0.0',
-    protocol: 'https',
-    timeout: 5000
-});
+module.exports = function(github) {
+    return function(cb) {
+        getFiles(function(err, files) {
+            if(err) {
+                return cb(err);
+            }
 
+            cb(null, parse(files));
+        });
+    };
 
-module.exports = function(cb) {
-    getFiles(function(err, files) {
-        if(err) {
-            return cb(err);
-        }
+    function parse(files) {
+        var ret = {};
 
-        cb(null, parse(files));
-    });
-};
+        files.forEach(function(file) {
+            var parts = file.split('/');
+            var name = parts[0];
+            var version = parts[1];
+            var filename = parts.slice(2).join('/');
 
-function parse(files) {
-    var ret = {};
+            if(!(name in ret)) {
+                ret[name] = {
+                    name: name,
+                    versions: [],
+                    assets: {} // version -> assets
+                };
+            }
 
-    files.forEach(function(file) {
-        var parts = file.split('/');
-        var name = parts[0];
-        var version = parts[1];
-        var filename = parts.slice(2).join('/');
+            var lib = ret[name];
 
-        if(!(name in ret)) {
-            ret[name] = {
-                name: name,
-                versions: [],
-                assets: {} // version -> assets
-            };
-        }
+            // version
+            if(lib.versions.indexOf(version) === -1) {
+                lib.versions.push(version);
+            }
 
-        var lib = ret[name];
+            // assets
+            if(!(version in lib.assets)) {
+                lib.assets[version] = [];
+            }
 
-        // version
-        if(lib.versions.indexOf(version) === -1) {
-            lib.versions.push(version);
-        }
+            lib.assets[version].push(filename);
+        });
 
-        // assets
-        if(!(version in lib.assets)) {
-            lib.assets[version] = [];
-        }
+        return values(ret).map(function(v) {
+            v.lastversion = v.versions.slice(-1)[0];
 
-        lib.assets[version].push(filename);
-    });
+            // convert assets to v1 format
+            var assets = [];
 
-    return values(ret).map(function(v) {
-        v.lastversion = v.versions.slice(-1)[0];
+            fp.each(function(version, files) {
+                assets.push({
+                    version: version,
+                    files: files
+                });
+            }, v.assets);
 
-        // convert assets to v1 format
-        var assets = [];
+            v.assets = assets;
 
-        fp.each(function(version, files) {
-            assets.push({
-                version: version,
-                files: files
-            });
-        }, v.assets);
+            return v;
+        });
+    }
 
-        v.assets = assets;
-
-        return v;
-    });
-}
-
-function getFiles(cb) {
-    github.repos.getContent({
-        user: 'maxcdn',
-        repo: 'bootstrap-cdn',
-        path: ''
-    }, function(err, res) {
-        if(err) {
-            return cb(err);
-        }
-
-        var sha = res.filter(function(v) {
-            return v.name === 'public';
-        })[0].sha;
-
-        github.gitdata.getTree({
+    function getFiles(cb) {
+        github.repos.getContent({
             user: 'maxcdn',
             repo: 'bootstrap-cdn',
-            sha: sha,
-            recursive: 1
+            path: ''
         }, function(err, res) {
             if(err) {
                 return cb(err);
             }
 
-            if(!res.tree) {
-                return cb(new Error('Missing tree'));
-            }
+            var sha = res.filter(function(v) {
+                return v.name === 'public';
+            })[0].sha;
 
-            // mode, 100644 === blob that is file
-            cb(null, res.tree.filter(is('mode', '100644')).map(prop('path')).
-                filter(contains('/')).
-                filter(not(startsWith('images/'))).
-                filter(not(startsWith('stylesheets/'))));
+            github.gitdata.getTree({
+                user: 'maxcdn',
+                repo: 'bootstrap-cdn',
+                sha: sha,
+                recursive: 1
+            }, function(err, res) {
+                if(err) {
+                    return cb(err);
+                }
+
+                if(!res.tree) {
+                    return cb(new Error('Missing tree'));
+                }
+
+                // mode, 100644 === blob that is file
+                cb(null, res.tree.filter(is('mode', '100644')).map(prop('path')).
+                    filter(contains('/')).
+                    filter(not(startsWith('images/'))).
+                    filter(not(startsWith('stylesheets/'))));
+            });
         });
-    });
-}
+    }
+};
 
 function is(prop, val) {
     return function(v) {
