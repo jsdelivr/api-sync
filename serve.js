@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+require('log-timestamp');
+
 var taskist = require('taskist');
 var sugar = require('mongoose-sugar');
 
