@@ -19,7 +19,7 @@ module.exports = function(target, scrape) {
                 return cb(err);
             }
 
-            async.eachLimit(files, 4, function(library, cb) {
+            async.eachSeries(files, function(library, cb) {
                 sugar.getOrCreate(Library, {
                     name: library.name
                 }, function(err, d) {
