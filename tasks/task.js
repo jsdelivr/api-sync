@@ -20,7 +20,6 @@ module.exports = function(output, target, scrape) {
             var p = path.join(output, target + '.json');
 
             libraries = libraries.map(function(library) {
-                library.zip = library.name + '.zip'; // XXX: move to specific cdns
                 library.versions = sortVersions(library.versions);
                 library.lastversion = library.versions[0];
 

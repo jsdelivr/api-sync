@@ -47,7 +47,8 @@ module.exports = function(github) {
                             ret[name] = {
                                 name: name,
                                 versions: [],
-                                assets: {} // version -> assets
+                                assets: {}, // version -> assets
+                                zip: name + '.zip'
                             };
                         }
 
