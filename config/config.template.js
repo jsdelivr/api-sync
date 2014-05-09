@@ -1,5 +1,6 @@
 module.exports = {
     port: 8000,
+    output: 'data',
     githubToken: '',
     mongo: {
         hostname: 'localhost',

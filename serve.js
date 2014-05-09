@@ -3,8 +3,8 @@
 
 require('log-timestamp');
 
+var mkdirp = require('mkdirp');
 var taskist = require('taskist');
-var sugar = require('mongoose-sugar');
 
 var config = require('./config');
 
@@ -23,7 +23,7 @@ if(config.githubToken) {
     });
 }
 
-var tasks = require('./tasks')(github);
+var tasks = require('./tasks')(config.output, github);
 
 
 if(require.main === module) {
@@ -34,16 +34,10 @@ module.exports = main;
 function main(cb) {
     cb = cb || noop;
 
-    var mongoUrl = sugar.parseAddress(config.mongo);
-
-    console.log('Connecting to database');
-
-    sugar.connect(mongoUrl, function(err) {
+    mkdirp(config.output, function(err) {
         if(err) {
-            return console.error('Failed to connect to database', err);
+            return cb(err);
         }
-
-        console.log('Connected to database');
 
         console.log('Initializing tasks');
         initTasks();

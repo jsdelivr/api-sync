@@ -1,49 +1,47 @@
 'use strict';
 
-var async = require('async');
-var sugar = require('mongoose-sugar');
+var fs = require('fs');
+var path = require('path');
 
 var sortVersions = require('../lib/sort_versions');
 
 
-module.exports = function(target, scrape) {
-    var Library = require('../schemas')[target + 'Library'];
-
+module.exports = function(output, target, scrape) {
     return function(cb) {
         console.log('Starting to update ' + target + ' data');
 
-        scrape(function(err, files) {
+        scrape(function(err, libraries) {
             if(err) {
                 console.error('Failed to update ' + target + ' data!', err);
 
                 return cb(err);
             }
 
-            async.eachSeries(files, function(library, cb) {
-                sugar.getOrCreate(Library, {
-                    name: library.name
-                }, function(err, d) {
+            var p = path.join(output, target + '.json');
+
+            libraries = libraries.map(function(library) {
+                library.zip = library.name + '.zip'; // XXX: move to specific cdns
+                library.versions = sortVersions(library.versions);
+                library.lastversion = library.versions[0];
+
+                return library;
+            });
+
+            fs.writeFile(
+                p,
+                JSON.stringify(libraries),
+                function(err) {
                     if(err) {
+                        console.error('Failed to write', p);
+
                         return cb(err);
                     }
 
-                    library.zip = library.name + '.zip';
-                    library.versions = sortVersions(library.versions);
-                    library.lastversion = library.versions[0];
+                    console.log('Updated', target, 'data');
 
-                    sugar.update(Library, d._id, library, cb);
-                });
-            }, function(err) {
-                if(err) {
-                    console.error(err);
-
-                    return cb(err);
+                    cb();
                 }
-
-                console.log('Updated ' + target + ' data');
-
-                cb();
-            });
+            );
         });
     };
 };
