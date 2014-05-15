@@ -13,7 +13,6 @@ var ini = require('ini');
 
 var utils = require('../lib/utils');
 var contains = utils.contains;
-var is = utils.is;
 
 
 module.exports = function(github) {
@@ -149,9 +148,11 @@ module.exports = function(github) {
                     return cb(new Error('Missing tree'));
                 }
 
-                // mode, 100644 === blob that is file
-                cb(null, res.tree.filter(is('mode', '100644')).map(prop('path')).
-                    filter(contains('/')));
+                var filtered = res.tree.filter(function(v) {
+                    return v.mode.indexOf('100') === 0;
+                }).map(prop('path')).filter(contains('/'));
+
+                cb(null, filtered);
             });
         });
     }
