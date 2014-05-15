@@ -7,7 +7,6 @@ var values = fp.values;
 
 var utils = require('../lib/utils');
 var contains = utils.contains;
-var is = utils.is;
 var startsWith = utils.startsWith;
 
 
@@ -99,11 +98,14 @@ module.exports = function(github) {
                     return cb(new Error('Missing tree'));
                 }
 
-                // mode, 100644 === blob that is file
-                cb(null, res.tree.filter(is('mode', '100644')).map(prop('path')).
+                var filtered = res.tree.filter(function(v) {
+                    return v.mode.indexOf('100') === 0;
+                }).map(prop('path')).
                     filter(contains('/')).
                     filter(not(startsWith('images/'))).
-                    filter(not(startsWith('stylesheets/'))));
+                    filter(not(startsWith('stylesheets/')));
+
+                cb(null, filtered);
             });
         });
     }
