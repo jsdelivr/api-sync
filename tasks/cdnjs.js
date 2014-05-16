@@ -20,6 +20,7 @@ module.exports = function() {
 
             cb(null, data.results.map(function(library) {
                 return {
+                    name: library.name,
                     mainfile: library.filename,
                     description: library.description,
                     homepage: library.homepage,
