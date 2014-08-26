@@ -16,6 +16,18 @@ var contains = utils.contains;
 
 
 module.exports = function(github) {
+    
+    // Breakfix:
+    // ---------
+    // make this do nothing!
+    return function(cb) {
+        return cb();
+    }
+    // end make this do nothing!
+    //
+    // Everything below here should be ignored.
+    // ---------
+    
     return function(cb) {
         getFiles(function(err, files) {
             if(err) {
