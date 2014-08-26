@@ -1,7 +1,8 @@
 'use strict';
 
 module.exports = function(output, github) {
-    var cdns = ['bootstrap', 'cdnjs', 'google', 'jquery', 'jsdelivr'];
+    //var cdns = ['bootstrap', 'cdnjs', 'google', 'jquery', 'jsdelivr'];
+    var cdns = ['bootstrap', 'cdnjs', 'google', 'jquery'];
     var ret = {};
 
     cdns.forEach(function(cdn) {
