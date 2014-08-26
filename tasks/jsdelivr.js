@@ -21,7 +21,7 @@ module.exports = function(github) {
     // ---------
     // make this do nothing!
     return function(cb) {
-        return cb();
+        return cb([]);
     }
     // end make this do nothing!
     //
