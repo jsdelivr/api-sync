@@ -7,6 +7,6 @@ module.exports = {
         cdnjs: {minute: 2},
         google: {minute: 4},
         //jsdelivr: {minute: 7},
-        jquery: {minute: 5}
+        //jquery: {minute: 5}
     }
 };
