@@ -138,8 +138,7 @@ module.exports = function(github) {
             github.gitdata.getTree({
                 user: 'jsdelivr',
                 repo: 'jsdelivr',
-                sha: sha,
-                recursive: 1
+                sha: sha
             }, function(err, res) {
                 if(err) {
                     return cb(err);
@@ -149,11 +148,39 @@ module.exports = function(github) {
                     return cb(new Error('Missing tree'));
                 }
 
-                var filtered = res.tree.filter(function(v) {
-                    return v.mode.indexOf('100') === 0;
-                }).map(prop('path')).filter(contains('/'));
+                // get each dir under /files
+                var dirs = res.tree.filter(function(v) {
+                    return v.mode.indexOf('040') === 0;
+                });
 
-                cb(null, filtered);
+                var files = [];
+
+                async.eachLimit(dirs, 8, function(dir, done) {
+                    github.gitdata.getTree({
+                        user: 'jsdelivr',
+                        repo: 'jsdelivr',
+                        sha: dir.sha,
+                        recursive: 1 // just recurse these smaller directories
+                    }, function(err, res) {
+
+                        // skip invalid entries, don't abort the entire update
+                        if (!err && res.tree) {
+                            res.tree.forEach(function(file) {
+                                // prepend the original base dir
+                                file.path = dir.path + '/' + file.path;
+                                files.push(file);
+                            });
+                        }
+
+                        setImmediate(done);
+                    });
+                }, function(err) {
+                    var filtered = files.filter(function(v) {
+                        return v.mode.indexOf('100') === 0;
+                    }).map(prop('path')).filter(contains('/'));
+
+                    cb(null, filtered);
+                });
             });
         });
     }
