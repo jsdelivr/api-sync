@@ -6,7 +6,7 @@ module.exports = {
         bootstrap: {minute: 0},
         cdnjs: {minute: 2},
         google: {minute: 4},
-        //jsdelivr: {minute: 7},
+        jsdelivr: {minute: 7}
         //jquery: {minute: 5}
     }
 };
