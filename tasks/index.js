@@ -2,7 +2,7 @@
 
 module.exports = function(output, github) {
     //var cdns = ['bootstrap', 'cdnjs', 'google', 'jquery', 'jsdelivr'];
-    var cdns = ['bootstrap', 'cdnjs', 'google'];
+    var cdns = ['bootstrap', 'cdnjs', 'google', 'jsdelivr'];
     var ret = {};
 
     cdns.forEach(function(cdn) {
