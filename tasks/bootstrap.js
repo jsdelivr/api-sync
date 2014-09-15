@@ -32,11 +32,8 @@ module.exports = function(github) {
             objBootstrap = JSON.parse(JSON.stringify(objParsed[matchIndex])); // copys sub-array
             objBootstrap.name = "bootstrap";
 
-            // merge fix, leaving "twitter-bootstrap" in for compatabilty
-            objFixed = JSON.stringify(objParsed).substr(1); // original array without the first character, which should be `[`
-            objFixed = "[" + JSON.stringify(objBootstrap) + "," + objFixed; // prepend correction
-            objFixed = JSON.parse(objFixed); // make into Object again
-
+            // merge & send fix, leaving "twitter-bootstrap" in for compatabilty
+            objFixed = [objBootstrap, objParsed];
             cb(null, objFixed);
             //=end v1 bugfix https://github.com/jsdelivr/api/issues/50
 
