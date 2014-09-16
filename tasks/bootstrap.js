@@ -32,9 +32,8 @@ module.exports = function(github) {
             objBootstrap = JSON.parse(JSON.stringify(objParsed[matchIndex])); // copys sub-array
             objBootstrap.name = "bootstrap";
 
-            // merge & send fix, leaving "twitter-bootstrap" in for compatabilty
-            objFixed = [objBootstrap, objParsed];
-            cb(null, objFixed);
+            // merge & send fix, leaving "twitte;
+            cb(null, objParsed.concat(objBootstrap));
             //=end v1 bugfix https://github.com/jsdelivr/api/issues/50
 
 /*
