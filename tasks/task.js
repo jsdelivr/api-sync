@@ -21,10 +21,18 @@ module.exports = function(output, target, scrape) {
 
             libraries = libraries.map(function(library) {
                 library.versions = sortVersions(library.versions);
+
+                // skip if library is missing versions for some reason
+                if(!library.versions) {
+                    console.warn('Failed to find versions for', library);
+
+                    return;
+                }
+
                 library.lastversion = library.versions[0];
 
                 return library;
-            });
+            }).filter(id);
 
             fs.writeFile(
                 p,
@@ -44,3 +52,7 @@ module.exports = function(output, target, scrape) {
         });
     };
 };
+
+function id(a) {
+    return a;
+}
