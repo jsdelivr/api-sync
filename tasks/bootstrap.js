@@ -16,8 +16,39 @@ module.exports = function(github) {
             if(err) {
                 return cb(err);
             }
+            //=start v1 bugfix https://github.com/jsdelivr/api/issues/50
+            var objParsed = parse(files);
 
-            cb(null, parse(files));
+            // clones sub-array that contains `"name": "twitter-bootstrap"` http://stackoverflow.com/a/15997913/1324588
+            var matchIndex,
+                objBootstrap = [],
+                objFixed = [];
+            objParsed.some(function(entry, i) { //some stops at first match
+                if (entry.name === "twitter-bootstrap") {
+                    matchIndex = i;
+                    return true;
+                }
+            });
+            objBootstrap = JSON.parse(JSON.stringify(objParsed[matchIndex])); // copys sub-array
+            objBootstrap.name = "bootstrap";
+
+            // merge & send fix, leaving "twitter-bootstrap" in for compatabilty
+            objFixed = [objBootstrap, objParsed];
+            cb(null, objFixed);
+            //=end v1 bugfix https://github.com/jsdelivr/api/issues/50
+
+/*
+            //=start v2 bugfix, dropping "twitter-bootstrap" compatabilty https://github.com/jsdelivr/api/issues/50
+            var objParsed = parse(files);
+
+            // simply replaces `"name": "twitter-bootstrap"` with "bootstrap"
+            objParsed.some(function(entry, i) { //some stops at first match
+                if (entry.name === "twitter-bootstrap") { entry.name = "bootstrap" }
+            });
+
+            cb(null, objParsed);
+            //=end v2 bugfix https://github.com/jsdelivr/api/issues/50
+*/
         });
     };
 
