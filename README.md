@@ -1,4 +1,5 @@
 # jsdelivr - api-sync
+[![Build Status](https://travis-ci.org/jsdelivr/api-sync.svg?branch=master)](https://travis-ci.org/jsdelivr/api-sync)
 
 This service keeps [jsdelivr API](https://github.com/jsdelivr/api) database up to date. Head there for the user facing part.
 
