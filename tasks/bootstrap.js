@@ -1,20 +1,22 @@
 'use strict';
 
-var fp = require('annofp');
-var not = fp.not;
-var prop = fp.prop;
-var values = fp.values;
+var fp = require('annofp')
+  , not = fp.not
+  , prop = fp.prop
+  , values = fp.values;
 
-var utils = require('../lib/utils');
-var contains = utils.contains;
-var startsWith = utils.startsWith;
+var log = require('../lib/log')
+  , utils = require('../lib/utils')
+  , contains = utils.contains
+  , startsWith = utils.startsWith;
 
 
 module.exports = function(github) {
     return function(cb) {
         getFiles(function(err, files) {
             if(err) {
-                return cb(err);
+              log.err("Error getting bootstrap files ",err);
+              return cb(err);
             }
             //=start v1 bugfix https://github.com/jsdelivr/api/issues/50
             var objParsed = parse(files);

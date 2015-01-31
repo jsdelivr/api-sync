@@ -1,9 +1,12 @@
 'use strict';
 
-var path = require('path');
+var path = require('path')
 
-var cheerio = require('cheerio');
-var request = require('request');
+  , cheerio = require('cheerio')
+  , request = require('request')
+
+  , log = require('../lib/log');
+
 
 
 module.exports = function() {
@@ -12,13 +15,11 @@ module.exports = function() {
             url: 'https://developers.google.com/speed/libraries/devguide'
         }, function(err, res, data) {
             if(err || !data) {
-                console.error('Failed to update google data!', err, data);
-
+                log.err('Failed to update google data!', err, data);
                 return cb(err);
             }
 
-            console.log('Fetched google data');
-
+            log.info('Fetched google data');
             cb(null, scrape(data));
         });
     };
