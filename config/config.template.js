@@ -3,6 +3,16 @@ module.exports = {
   output: 'data',
   githubToken: '',
   logentriesToken: '',
+  mailFrom: {
+    service: 'Gmail',
+    auth: {
+      user: '',
+      pass: ''
+    }
+  },
+  mailTo: {
+    user: ''
+  },
   tasks: {
     bootstrap: {minute: 0},
     cdnjs: {minute: 2},

@@ -3,7 +3,8 @@
 var request = require('request')
   , prop = require('annofp').prop
 
-  , log = require('../lib/log');
+  , log = require('../lib/log')
+  , mail = require('../lib/mail');
 
 
 module.exports = function() {
@@ -13,7 +14,9 @@ module.exports = function() {
             json: true
         }, function(err, res, data) {
             if(err || !data || !data.results) {
-                log.err('Failed to update cdnjs data!', err, data);
+                var s = 'Failed to update cdnjs data!';
+                log.err(s, err, data);
+                mail.error(s);
                 return cb(err);
             }
 

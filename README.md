@@ -7,13 +7,26 @@ This service keeps [jsdelivr API](https://github.com/jsdelivr/api) database up t
 
 [Install node](http://nodejs.org/download/) and npm on your system.  For Mac, you can <a href="http://brew.sh/">install Homebrew</a> and then run `brew install node`
 
-Install dependencies
+### Install dependencies
 
     npm install
 
-Run the module
+### Configure module
 
-    node serve.js
+From the project root:
+
+1. `$ cp ./config/config.template.js ./config/config.js`
+2. Edit newly created `./config/config.js` w/ appropriate values.
+  * Github API token under key `githubToken`
+  * Logentries API token under key `logentriesToken`
+  * Nodemailer gmail authentication values under key `mailFrom`
+  * Address to send notifications to under key `mailTo`
+
+### Run the module
+
+```
+  $ npm start
+```
 
 Your output data will be in the `data/` directory.
 

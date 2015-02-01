@@ -5,7 +5,8 @@ var path = require('path')
   , cheerio = require('cheerio')
   , request = require('request')
 
-  , log = require('../lib/log');
+  , log = require('../lib/log')
+  , mail = require('../lib/mail');
 
 
 
@@ -15,8 +16,10 @@ module.exports = function() {
             url: 'https://developers.google.com/speed/libraries/devguide'
         }, function(err, res, data) {
             if(err || !data) {
-                log.err('Failed to update google data!', err, data);
-                return cb(err);
+              var s = 'Failed to update google data!';
+              log.err(s, err, data);
+              mail.error(s);
+              return cb(err);
             }
 
             log.info('Fetched google data');

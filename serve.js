@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-require('log-timestamp');
-
 var path = require('path')
 
   , async = require('async')
@@ -13,6 +11,7 @@ var path = require('path')
 
   , config = require('./config')
   , log = require('./lib/log')
+  , mail = require('./lib/mail')
 
   , GitHubApi = require('github');
 
@@ -82,6 +81,7 @@ function serve(config, cb) {
       return cb(err);
     }
 
+    mail.notify("jsdelivr api-sync server is starting...");
     log.info('Node (version: ' + process.version + ') ' + process.argv[1] + ' started on ' + config.port + ' ...');
     cb();
   });
@@ -99,10 +99,14 @@ function terminator(sig) {
   if(typeof sig === 'string') {
     var s = 'Received ' + sig + ' - terminating Node server ...';
     log.info(s);
+
+    mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
+      log.end();
+      process.exit(1);
+    });
+  } else {
+    mail.notify("jsdelivr api-sync server has stopped.");
+    log.info('Node server stopped.');
     log.end();
-
-    process.exit(1);
   }
-
-  log.info('Node server stopped.');
 }

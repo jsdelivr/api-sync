@@ -7,6 +7,7 @@ var fp = require('annofp')
 
 var log = require('../lib/log')
   , utils = require('../lib/utils')
+  , mail = require('../lib/mail')
   , contains = utils.contains
   , startsWith = utils.startsWith;
 
@@ -15,7 +16,9 @@ module.exports = function(github) {
     return function(cb) {
         getFiles(function(err, files) {
             if(err) {
-              log.err("Error getting bootstrap files ",err);
+              var s = 'Failed to update bootstrap data!';
+              log.err(s, err);
+              mail.error(s);
               return cb(err);
             }
             //=start v1 bugfix https://github.com/jsdelivr/api/issues/50

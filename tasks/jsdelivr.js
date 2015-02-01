@@ -139,7 +139,7 @@ module.exports = function(github) {
     try {
       etags = require(etagsFilePath);
     } catch(err) {
-      console.log('There is no cached etags file, starting from scratch');
+      log.info('jsdelivr has no cached etags file, starting from scratch');
       etags = {};
     }
 

@@ -3,10 +3,9 @@
 var fs = require('fs')
   , path = require('path')
 
-  , log = require('../lib/log');
-
-var sortVersions = require('../lib/sort_versions');
-
+  , log = require('../lib/log')
+  , mail = require('../lib/mail')
+  , sortVersions = require('../lib/sort_versions');
 
 module.exports = function(output, target, scrape) {
   return function(cb) {
@@ -14,7 +13,9 @@ module.exports = function(output, target, scrape) {
 
     scrape(function(err, libraries) {
       if(err) {
-        log.err('Failed to update ' + target + ' data!', err);
+        var s = 'Failed to update ' + target + ' data!';
+        log.err(s, err);
+        mail.error(s);
         return cb(err);
       }
 
@@ -77,6 +78,19 @@ function merge(target,receivedJSON) {
     return list;
   };
 
+  var _trimList = function(list) {
+    var map = {}
+      , list;
+    for(var i = 0; i < list.length; i++) {
+      if(map[list[i].name])
+        log.warning("Duplicate key '",list[i].name,"' found in receivedJSON for target ",target);
+      else
+        map[list[i].name] = list[i];
+    }
+    list = _mapToList(map);
+    return list;
+  };
+
   var targetJSON
     , updatedJSON;
 
@@ -89,6 +103,8 @@ function merge(target,receivedJSON) {
 
   var targetDBMap = _listToMap(targetJSON)
     , freshDBMap = _listToMap(receivedJSON);
+
+  receivedJSON = _trimList(receivedJSON);
 
   log.info("merging ",receivedJSON.length," items into ",target);
 
