@@ -3,15 +3,19 @@ module.exports = {
   output: 'data',
   githubToken: '',
   logentriesToken: '',
-  mailFrom: {
-    service: 'Gmail',
-    auth: {
+  smtp: {
+    host: '',
+    port: ''
+  },
+  smtpAuth: {
       user: '',
       pass: ''
-    }
   },
-  mailTo: {
-    user: ''
+  smtpTo: {
+    email: ''
+  },
+  smtpFrom: {
+    email: ''
   },
   tasks: {
     bootstrap: {minute: 0},
