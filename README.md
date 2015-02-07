@@ -19,8 +19,19 @@ From the project root:
 2. Edit newly created `./config/config.js` w/ appropriate values.
   * Github API token under key `githubToken`
   * Logentries API token under key `logentriesToken`
-  * Nodemailer gmail authentication values under key `mailFrom`
-  * Address to send notifications to under key `mailTo`
+  * Nodemailer smtp `host` and `port` values under key `smtp`
+  * Nodemailer smtp `user` and `pass` values under key `smtpAuth`
+  * Address to send notifications from under key `smtpFrom`
+  * Address to send notifications to under key `smtpTo`
+
+Alternatively you can specify the config values via process environment variables:
+
+  * GITHUB_TOKEN
+  * LOGENTRIES_TOKEN
+  * SMTP_HOST and SMTP_PORT
+  * SMTP_AUTH_USER and SMTP_AUTH_PASS
+  * SMTP_FROM_EMAIL
+  * SMTP_TO_EMAIL
 
 ### Run the module
 
