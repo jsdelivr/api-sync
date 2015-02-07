@@ -1,112 +1,112 @@
 #!/usr/bin/env node
 'use strict';
 
-require('log-timestamp');
+var path = require('path')
 
-var path = require('path');
+  , async = require('async')
+  , connect = require('connect')
+  , express = require('express')
+  , mkdirp = require('mkdirp')
+  , taskist = require('taskist')
 
-var async = require('async');
-var connect = require('connect');
-var express = require('express');
-var mkdirp = require('mkdirp');
-var taskist = require('taskist');
+  , config = require('./config')
+  , log = require('./lib/log')
+  , mail = require('./lib/mail')
 
-var config = require('./config');
-
-var GitHubApi = require('github');
+  , GitHubApi = require('github');
 
 var github = new GitHubApi({
-    version: '3.0.0',
-    protocol: 'https',
-    timeout: 5000
+  version: '3.0.0',
+  protocol: 'https',
+  timeout: 5000
 });
 
 if(config.githubToken) {
-    github.authenticate({
-        type: 'oauth',
-        token: config.githubToken
-    });
+  github.authenticate({
+    type: 'oauth',
+    token: config.githubToken
+  });
 }
 
 var tasks = require('./tasks')(config.output, github);
 
 
 if(require.main === module) {
-    main();
+  main();
 }
 
 module.exports = main;
 function main() {
-    handleExit();
+  handleExit();
 
-    async.series([
-        mkdirp.bind(null, config.output),
-        serve.bind(null, config),
-        initTasks
-    ], function(err) {
-        if(err) {
-            return console.error(err);
-        }
-    });
+  async.series([
+    mkdirp.bind(null, config.output),
+    serve.bind(null, config),
+    initTasks
+  ], function(err) {
+    if(err) {
+      return console.error(err);
+    }
+  });
 }
 
 function handleExit() {
-    process.on('exit', terminator);
+  process.on('exit', terminator);
 
-    ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS',
+  ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS',
     'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGPIPE', 'SIGTERM'
-    ].forEach(function(element) {
-        process.on(element, function() {
-            terminator(element);
-        });
+  ].forEach(function(element) {
+      process.on(element, function() {
+        terminator(element);
+      });
     });
 }
 
 function serve(config, cb) {
-    var app = express();
-    var hour = 3600 * 1000;
-    var staticPath = path.join(__dirname, config.output);
+  var app = express();
+  var hour = 3600 * 1000;
+  var staticPath = path.join(__dirname, config.output);
 
-    app.use('/data', express['static'](staticPath, {
-        maxAge: hour
-    }));
+  app.use('/data', express['static'](staticPath, {
+    maxAge: hour
+  }));
 
-    var env = process.env.NODE_ENV || 'development';
-    if(env === 'development') {
-        app.use(connect.errorHandler());
+  var env = process.env.NODE_ENV || 'development';
+  if(env === 'development') {
+    app.use(connect.errorHandler());
+  }
+
+  app.listen(config.port, function(err) {
+    if(err) {
+      return cb(err);
     }
 
-    app.listen(config.port, function(err) {
-        if(err) {
-            return cb(err);
-        }
-
-        console.log(
-            'Node (version: %s) %s started on %d ...',
-            process.version,
-            process.argv[1],
-            config.port
-        );
-
-        cb();
-    });
+    mail.notify("jsdelivr api-sync server is starting...");
+    log.info('Node (version: ' + process.version + ') ' + process.argv[1] + ' started on ' + config.port + ' ...');
+    cb();
+  });
 }
 
 function initTasks(cb) {
-    console.log('Initializing tasks');
-    taskist(config.tasks, tasks, {
-        instant: cb,
-        series: true
-    });
+  log.info('Initializing tasks');
+  taskist(config.tasks, tasks, {
+    instant: cb,
+    series: true
+  });
 }
 
 function terminator(sig) {
-    if(typeof sig === 'string') {
-        console.log('%s: Received %s - terminating Node server ...',
-            Date(Date.now()), sig);
+  if(typeof sig === 'string') {
+    var s = 'Received ' + sig + ' - terminating Node server ...';
+    log.info(s);
 
-        process.exit(1);
-    }
-
-    console.log('%s: Node server stopped.', Date(Date.now()) );
+    mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
+      log.end();
+      process.exit(1);
+    });
+  } else {
+    mail.notify("jsdelivr api-sync server has stopped.");
+    log.info('Node server stopped.');
+    log.end();
+  }
 }

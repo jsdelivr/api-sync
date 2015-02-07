@@ -1,7 +1,10 @@
 'use strict';
 
-var request = require('request');
-var prop = require('annofp').prop;
+var request = require('request')
+  , prop = require('annofp').prop
+
+  , log = require('../lib/log')
+  , mail = require('../lib/mail');
 
 
 module.exports = function() {
@@ -11,12 +14,13 @@ module.exports = function() {
             json: true
         }, function(err, res, data) {
             if(err || !data || !data.results) {
-                console.error('Failed to update cdnjs data!', err, data);
-
+                var s = 'Failed to update cdnjs data!';
+                log.err(s, err, data);
+                mail.error(s);
                 return cb(err);
             }
 
-            console.log('Fetched cdnjs data');
+            log.info('Fetched cdnjs data');
 
             cb(null, data.results.map(function(library) {
                 return {

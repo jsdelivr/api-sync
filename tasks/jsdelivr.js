@@ -11,7 +11,8 @@ var url = require('url')
   , fs = require('fs')
   , path = require('path');
 
-var utils = require('../lib/utils');
+var utils = require('../lib/utils')
+  , log = require("../lib/log");
 
 var contains = utils.contains;
 
@@ -26,9 +27,9 @@ module.exports = function(github) {
       //write etags value to file
       fs.writeFile(etagsFilePath, JSON.stringify(etags), function(err) {
         if(err) {
-          console.log(err);
+          log.err("failed to save jsdelivr etags ",err);
         } else {
-          console.log("etags saved to " + etagsFilePath);
+          log.info("jsdelivr etags saved to " + etagsFilePath);
         }
       });
 
@@ -138,7 +139,7 @@ module.exports = function(github) {
     try {
       etags = require(etagsFilePath);
     } catch(err) {
-      console.log('There is no cached etags file, starting from scratch');
+      log.info('jsdelivr has no cached etags file, starting from scratch');
       etags = {};
     }
 
@@ -188,9 +189,7 @@ module.exports = function(github) {
             "If-None-Match": etags[dir.sha]
           };
           github.gitdata.getTree(config, function(err, res) {
-            //console.log(JSON.stringify(res))
             // skip invalid entries, don't abort the entire update
-            //console.log(JSON.stringify(res.meta))
             if (!err && res.tree) {
               //console.log(JSON.stringify(res.meta));
 
