@@ -81,7 +81,7 @@ function serve(config, cb) {
       return cb(err);
     }
 
-    mail.notify("jsdelivr api-sync server is starting...");
+  //  mail.notify("jsdelivr api-sync server is starting...");
     log.info('Node (version: ' + process.version + ') ' + process.argv[1] + ' started on ' + config.port + ' ...');
     cb();
   });
