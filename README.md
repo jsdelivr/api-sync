@@ -24,6 +24,7 @@ From the project root:
   * Nodemailer smtp `user` and `pass` values under key `smtpAuth`
   * Address to send notifications from under key `smtpFrom`
   * Address to send notifications to under key `smtpTo`
+3. Configure the repos webhook setting, add a new webhook w/ the `push` event, url `YOUR_HOST/webhook` and secret that is the same as `webhookSecret`
 
 Alternatively you can specify the config values via process environment variables:
 
@@ -34,8 +35,6 @@ Alternatively you can specify the config values via process environment variable
   * `SMTP_AUTH_USER` and `SMTP_AUTH_PASS`
   * `SMTP_FROM_EMAIL`
   * `SMTP_TO_EMAIL`
-3. Configure the repos webhook setting, add a new webhook w/ the `push` event, url `YOUR_HOST/webhook` and secret that is
-   the same as `WEBHOOK_SECRET`
 
 ### Run the module
 
