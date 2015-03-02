@@ -18,6 +18,7 @@ From the project root:
 1. `$ cp ./config/config.template.js ./config/config.js`
 2. Edit newly created `./config/config.js` w/ appropriate values.
   * Github API token under key `githubToken`
+  * Github WebHooks secred under key `webhookSecret`
   * Logentries API token under key `logentriesToken`
   * Nodemailer smtp `host` and `port` values under key `smtp`
   * Nodemailer smtp `user` and `pass` values under key `smtpAuth`
@@ -26,12 +27,15 @@ From the project root:
 
 Alternatively you can specify the config values via process environment variables:
 
-  * GITHUB_TOKEN
-  * LOGENTRIES_TOKEN
-  * SMTP_HOST and SMTP_PORT
-  * SMTP_AUTH_USER and SMTP_AUTH_PASS
-  * SMTP_FROM_EMAIL
-  * SMTP_TO_EMAIL
+  * `GITHUB_TOKEN`
+  * `WEBHOOK_SECRET`
+  * `LOGENTRIES_TOKEN`
+  * `SMTP_HOST` and `SMTP_PORT`
+  * `SMTP_AUTH_USER` and `SMTP_AUTH_PASS`
+  * `SMTP_FROM_EMAIL`
+  * `SMTP_TO_EMAIL`
+3. Configure the repos webhook setting, add a new webhook w/ the `push` event, url `YOUR_HOST/webhook` and secret that is
+   the same as `WEBHOOK_SECRET`
 
 ### Run the module
 

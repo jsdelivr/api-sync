@@ -4,8 +4,10 @@
 var path = require('path')
 
   , async = require('async')
+  , crypto = require('crypto')
   , connect = require('connect')
   , express = require('express')
+  , bodyParser = require('body-parser')
   , mkdirp = require('mkdirp')
   , taskist = require('taskist')
 
@@ -28,6 +30,7 @@ if(config.githubToken) {
   });
 }
 
+var jsdelivrUpdating = false;
 var tasks = require('./tasks')(config.output, github);
 
 
@@ -42,6 +45,7 @@ function main() {
   async.series([
     mkdirp.bind(null, config.output),
     serve.bind(null, config),
+    triggerJsdelivrSync,
     initTasks
   ], function(err) {
     if(err) {
@@ -66,10 +70,22 @@ function serve(config, cb) {
   var app = express();
   var hour = 3600 * 1000;
   var staticPath = path.join(__dirname, config.output);
+  var webhookRouter = express.Router();
 
   app.use('/data', express['static'](staticPath, {
     maxAge: hour
   }));
+
+  webhookRouter.use(bodyParser.json({verify: verifyHmac}));
+  webhookRouter.post('/',function(req,res) {
+
+    if(req.body && req.body.ref && req.body.ref === "refs/heads/master") {
+
+      triggerJsdelivrSync();
+      res.status(200).end();
+    }
+  });
+  app.use('/webhook',webhookRouter);
 
   var env = process.env.NODE_ENV || 'development';
   if(env === 'development') {
@@ -93,6 +109,52 @@ function initTasks(cb) {
     instant: cb,
     series: true
   });
+}
+
+function triggerJsdelivrSync(done) {
+  if(!jsdelivrUpdating) {
+    //set the updating flag so we don't attempt multiple updates at the same time
+    jsdelivrUpdating = true;
+
+    var cdn = 'jsdelivr'
+      , task = require('./tasks/task')
+      , scrape = require('./tasks/' + cdn)(github);
+
+    task(config.output, cdn, scrape)(function (err) {
+      if (err)
+        log.err(err);
+      jsdelivrUpdating = false;
+      if(done)
+        done(err);
+    });
+  }
+}
+
+//verify github webhook push
+function verifyHmac(req, res, buf) {
+
+  var hash = req.header("X-Hub-Signature"),
+    hmac = crypto.createHmac("sha1", config.webhookSecret);
+
+  hmac.update(buf);
+
+  var crypted = 'sha1=' +  hmac.digest("hex");
+
+  if(crypted === hash) {
+    // Valid request, do nothing
+    console.log(
+      "Valid signature - providedSignature: %s, calculatedSignature: %s",
+      hash,
+      crypted);
+  } else {
+    // Invalid request
+    console.log(
+      "Wrong signature - providedSignature: %s, calculatedSignature: %s",
+      hash,
+      crypted);
+    var error = { status: 400, body: "Wrong signature" };
+    throw error;
+  }
 }
 
 function terminator(sig) {
