@@ -82,8 +82,8 @@ function serve(config, cb) {
     if(req.body && req.body.ref && req.body.ref === "refs/heads/master") {
 
       triggerJsdelivrSync();
-      res.status(200).end();
     }
+    res.status(200).end();
   });
   app.use('/webhook',webhookRouter);
 
