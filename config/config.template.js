@@ -3,6 +3,7 @@ module.exports = {
   output: 'data',
   githubToken: '',
   logentriesToken: '',
+  webhookSecret: '',
   smtp: {
     host: '',
     port: ''
@@ -20,8 +21,7 @@ module.exports = {
   tasks: {
     bootstrap: {minute: 0},
     cdnjs: {minute: 2},
-    google: {minute: 4},
-    jsdelivr: {minute: 7}
+    google: {minute: 4}
     //jquery: {minute: 5}
   }
 };
