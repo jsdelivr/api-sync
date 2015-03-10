@@ -9,7 +9,8 @@ var path = require('path')
   , express = require('express')
   , bodyParser = require('body-parser')
   , mkdirp = require('mkdirp')
-  , taskist = require('taskist')
+  , schedule = require('node-schedule')
+  , _ = require('lodash')
 
   , config = require('./config')
   , log = require('./lib/log')
@@ -45,7 +46,7 @@ function main() {
   async.series([
     mkdirp.bind(null, config.output),
     serve.bind(null, config),
-    triggerJsdelivrSync,
+    //triggerJsdelivrSync,
     initTasks
   ], function(err) {
     if(err) {
@@ -105,9 +106,34 @@ function serve(config, cb) {
 
 function initTasks(cb) {
   log.info('Initializing tasks');
-  taskist(config.tasks, tasks, {
-    instant: cb,
-    series: true
+
+  _.each(Object.keys(config.tasks),function(name) {
+
+    if(name in tasks) {
+
+      var pattern = config.tasks[name]
+      ,  rule = new schedule.RecurrenceRule();
+
+      rule.minute = new schedule.Range(0, 59, pattern.minute);
+
+      schedule.scheduleJob(rule, function(name) {
+
+        var task = tasks[name]
+          , cdn = name
+          , task = require('./tasks/task')
+          , scrape = require('./tasks/' + cdn)(github);
+
+        log.info("running task...",name,pattern);
+
+        task(config.output, cdn, scrape)(function (err) {
+          if (err)
+            log.err(err);
+        });
+      }.bind(null,name));
+    }
+    else {
+      console.warn('Failed to find `' + name + '` amongst tasks!');
+    }
   });
 }
 
@@ -162,12 +188,12 @@ function terminator(sig) {
     var s = 'Received ' + sig + ' - terminating Node server ...';
     log.info(s);
 
-    mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
+    //mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
       log.end();
       process.exit(1);
-    });
+    //});
   } else {
-    mail.notify("jsdelivr api-sync server has stopped.");
+    //mail.notify("jsdelivr api-sync server has stopped.");
     log.info('Node server stopped.');
     log.end();
   }
