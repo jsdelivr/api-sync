@@ -32,7 +32,7 @@ if(config.githubToken) {
 }
 
 var jsdelivrUpdating = false;
-var tasks = require('./tasks')(config.output, github);
+//var tasks = require('./tasks')(config.output, github);
 
 
 if(require.main === module) {
@@ -46,7 +46,7 @@ function main() {
   async.series([
     mkdirp.bind(null, config.output),
     serve.bind(null, config),
-    //triggerJsdelivrSync,
+    triggerJsdelivrSync,
     initTasks
   ], function(err) {
     if(err) {
@@ -109,31 +109,30 @@ function initTasks(cb) {
 
   _.each(Object.keys(config.tasks),function(name) {
 
-    if(name in tasks) {
+    var pattern = config.tasks[name]
+    ,  rule = new schedule.RecurrenceRule();
 
-      var pattern = config.tasks[name]
-      ,  rule = new schedule.RecurrenceRule();
+    rule.minute = new schedule.Range(0, 59, pattern.minute);
 
-      rule.minute = new schedule.Range(0, 59, pattern.minute);
+    schedule.scheduleJob(rule, function(name) {
 
-      schedule.scheduleJob(rule, function(name) {
+      var cdn = name
+        , task = require('./tasks/task')
+        , scrape = null;
 
-        var task = tasks[name]
-          , cdn = name
-          , task = require('./tasks/task')
-          , scrape = require('./tasks/' + cdn)(github);
+      log.info("running task...",name,pattern);
 
-        log.info("running task...",name,pattern);
-
+      try
+      {
+        scrape = require('./tasks/' + cdn)(github);
         task(config.output, cdn, scrape)(function (err) {
           if (err)
             log.err(err);
         });
-      }.bind(null,name));
-    }
-    else {
-      console.warn('Failed to find `' + name + '` amongst tasks!');
-    }
+      } catch(e) {
+        log.err(e);
+      }
+    }.bind(null,name));
   });
 }
 
@@ -151,7 +150,7 @@ function triggerJsdelivrSync(done) {
         log.err(err);
       jsdelivrUpdating = false;
       if(done)
-        done(err);
+        done();
     });
   }
 }

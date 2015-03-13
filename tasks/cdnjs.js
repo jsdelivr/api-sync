@@ -17,7 +17,8 @@ module.exports = function() {
                 var s = 'Failed to update cdnjs data!';
                 log.err(s, err, data);
                 mail.error(s);
-                return cb(err);
+                var error = new Error(err || data);
+                return cb(error);
             }
 
             log.info('Fetched cdnjs data');

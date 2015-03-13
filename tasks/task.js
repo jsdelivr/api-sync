@@ -20,13 +20,13 @@ module.exports = function(output, target, scrape) {
         return cb(err);
       }
 
-      var p = path.resolve(__dirname,'../',output, target + '.json');
+      var p = path.resolve(__dirname, '../', output, target + '.json');
 
-      libraries = libraries.map(function(library) {
+      libraries = libraries.map(function (library) {
         library.versions = sortVersions(library.versions);
 
         // skip if library is missing versions for some reason
-        if(!library.versions) {
+        if (!library.versions) {
           log.warn('Failed to find versions for', library);
 
           return;
@@ -37,12 +37,12 @@ module.exports = function(output, target, scrape) {
         return library;
       }).filter(id);
 
-      var updatedTarget = merge(p,libraries);
+      var updatedTarget = merge(p, libraries);
       fs.writeFile(
         p,
         JSON.stringify(updatedTarget),
-        function(err) {
-          if(err) {
+        function (err) {
+          if (err) {
             log.err('Failed to write json db to path ' + p);
 
             return cb(err);
