@@ -2,6 +2,7 @@
 
 var fs = require('fs')
   , path = require('path')
+  , _ = require('lodash')
 
   , log = require('../lib/log')
   , mail = require('../lib/mail')
@@ -62,37 +63,13 @@ function id(a) {
 
 function merge(target,receivedJSON) {
 
-  var _listToMap = function(list) {
-    var map = {};
-    for(var i = 0; i < list.length; i++) {
-      map[list[i].name] = list[i];
-    }
-    return map;
-  };
-
-  var _mapToList = function(map) {
-    var list = [];
-    for(var key in map) {
-      list.push(map[key]);
-    }
-    return list;
-  };
-
-  var _trimList = function(list) {
-    var map = {}
-      , list;
-    for(var i = 0; i < list.length; i++) {
-      if(map[list[i].name])
-        log.warning("Duplicate key '",list[i].name,"' found in receivedJSON for target ",target);
-      else
-        map[list[i].name] = list[i];
-    }
-    list = _mapToList(map);
-    return list;
-  };
-
   var targetJSON
-    , updatedJSON;
+
+    , targetNames = []
+    , receivedNames = []
+
+    , targetNamesToJSONindex = {}
+    , receivedNamesToJSONindex = {};
 
   try {
     targetJSON = require(target);
@@ -101,29 +78,34 @@ function merge(target,receivedJSON) {
     targetJSON = [];
   }
 
-  var targetDBMap = _listToMap(targetJSON)
-    , freshDBMap = _listToMap(receivedJSON);
-
-  receivedJSON = _trimList(receivedJSON);
+  for(var i = 0; i < targetJSON.length; i++) {
+    targetNames.push(targetJSON[i].name);
+    targetNamesToJSONindex[targetJSON[i].name] = i;
+  }
+  for(var i = 0; i < receivedJSON.length; i++) {
+    if(receivedJSON[i].name) {
+      receivedNames.push(receivedJSON[i].name);
+      receivedNamesToJSONindex[receivedJSON[i].name] = i;
+    }
+    else
+      log.warn("unable to merge library w/o name",receivedJSON[i]);
+  }
 
   log.info("merging ",receivedJSON.length," items into ",target);
 
-  for(var key in freshDBMap) {
-    targetDBMap[key] = freshDBMap[key];
-  }
+  _.each(receivedNames,function(name) {
+    if(typeof targetNamesToJSONindex[name] !== "undefined")//updated
+      targetJSON[targetNamesToJSONindex[name]] = receivedJSON[receivedNamesToJSONindex[name]];
+    else//new
+      targetJSON.push(receivedJSON[receivedNamesToJSONindex[name]]);
+  });
 
-  updatedJSON = _mapToList(targetDBMap);
+  log.info("saving ",targetJSON.length," items into ",target);
 
-  log.info("saving ",updatedJSON.length," items into ",target);
+  //make sure these are garbage collected
+  targetNames.length = 0;
+  receivedNames.length = 0;
+  receivedJSON.length = 0;
 
-  if(updatedJSON.length < targetJSON.length) {
-    log.err("Data potentially lost during ",target," update!");
-    log.err("updatedJSON item count ",updatedJSON.length," < "," original targetJSON item count ",targetJSON.length);
-  }
-  if(updatedJSON.length < receivedJSON.length) {
-    log.err("Update data not completely merged into ",target);
-    log.err("updatedJSON item count ",updatedJSON.length," < "," receivedJSON item count ",receivedJSON.length);
-  }
-
-  return updatedJSON;
+  return targetJSON;
 }
