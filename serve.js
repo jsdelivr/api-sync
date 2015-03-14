@@ -9,7 +9,8 @@ var path = require('path')
   , express = require('express')
   , bodyParser = require('body-parser')
   , mkdirp = require('mkdirp')
-  , taskist = require('taskist')
+  , schedule = require('node-schedule')
+  , _ = require('lodash')
 
   , config = require('./config')
   , log = require('./lib/log')
@@ -31,7 +32,7 @@ if(config.githubToken) {
 }
 
 var jsdelivrUpdating = false;
-var tasks = require('./tasks')(config.output, github);
+//var tasks = require('./tasks')(config.output, github);
 
 
 if(require.main === module) {
@@ -105,9 +106,33 @@ function serve(config, cb) {
 
 function initTasks(cb) {
   log.info('Initializing tasks');
-  taskist(config.tasks, tasks, {
-    instant: cb,
-    series: true
+
+  _.each(Object.keys(config.tasks),function(name) {
+
+    var pattern = config.tasks[name]
+    ,  rule = new schedule.RecurrenceRule();
+
+    rule.minute = new schedule.Range(0, 59, pattern.minute);
+
+    schedule.scheduleJob(rule, function(name) {
+
+      var cdn = name
+        , task = require('./tasks/task')
+        , scrape = null;
+
+      log.info("running task...",name,pattern);
+
+      try
+      {
+        scrape = require('./tasks/' + cdn)(github);
+        task(config.output, cdn, scrape)(function (err) {
+          if (err)
+            log.err(err);
+        });
+      } catch(e) {
+        log.err(e);
+      }
+    }.bind(null,name));
   });
 }
 
@@ -125,7 +150,7 @@ function triggerJsdelivrSync(done) {
         log.err(err);
       jsdelivrUpdating = false;
       if(done)
-        done(err);
+        done();
     });
   }
 }
@@ -162,12 +187,12 @@ function terminator(sig) {
     var s = 'Received ' + sig + ' - terminating Node server ...';
     log.info(s);
 
-    mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
+    //mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
       log.end();
       process.exit(1);
-    });
+    //});
   } else {
-    mail.notify("jsdelivr api-sync server has stopped.");
+    //mail.notify("jsdelivr api-sync server has stopped.");
     log.info('Node server stopped.');
     log.end();
   }
