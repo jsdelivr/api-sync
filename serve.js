@@ -81,8 +81,11 @@ function serve(config, cb) {
   webhookRouter.post('/',function(req,res) {
 
     if(req.body && req.body.ref && req.body.ref === "refs/heads/master") {
-
+      log.info("Webhook received for push to jsdelvr master branch - begin jsdelivr update");
       triggerJsdelivrSync();
+    }
+    else {
+      log.info("Webhook received for push to jsdelvr branch other than master - do not begin jsdelivr update");
     }
     res.status(200).end();
   });
@@ -138,6 +141,7 @@ function initTasks(cb) {
 
 function triggerJsdelivrSync(done) {
   if(!jsdelivrUpdating) {
+    log.info("starting to update jsdelivr...");
     //set the updating flag so we don't attempt multiple updates at the same time
     jsdelivrUpdating = true;
 
@@ -152,6 +156,8 @@ function triggerJsdelivrSync(done) {
       if(done)
         done();
     });
+  } else {
+    log.info("jsdelivr sync is currently in progress");
   }
 }
 
@@ -167,16 +173,10 @@ function verifyHmac(req, res, buf) {
 
   if(crypted === hash) {
     // Valid request, do nothing
-    console.log(
-      "Valid signature - providedSignature: %s, calculatedSignature: %s",
-      hash,
-      crypted);
+    log.info("Webhook signature is valid, jsdelivr update can proceed - providedSignature: " + hash + ", calculatedSignature: " + crypted);
   } else {
     // Invalid request
-    console.log(
-      "Wrong signature - providedSignature: %s, calculatedSignature: %s",
-      hash,
-      crypted);
+    log.info("Webhook signature is NOT VALID, jsdelivr update WILL NOT proceed - providedSignature: " + hash + ", calculatedSignature: " + crypted);
     var error = { status: 400, body: "Wrong signature" };
     throw error;
   }
