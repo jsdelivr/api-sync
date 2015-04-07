@@ -30,8 +30,7 @@ if(config.githubToken) {
   });
 }
 
-var jsdelivrUpdating = false
-  , taskUpdating = {};
+var taskUpdating = {};
 
 if(require.main === module) {
   main();
@@ -44,7 +43,6 @@ function main() {
   async.series([
     mkdirp.bind(null, config.output),
     serve.bind(null, config),
-    triggerJsdelivrSync,
     initTasks
   ], function(err) {
     if(err) {
@@ -80,7 +78,7 @@ function serve(config, cb) {
 
     if(req.body && req.body.ref && req.body.ref === "refs/heads/master") {
       log.info("Webhook received for push to jsdelvr master branch - begin jsdelivr update");
-      triggerJsdelivrSync();
+      triggerTask("jsdelivr");
     }
     else {
       log.info("Webhook received for push to jsdelvr branch other than master - do not begin jsdelivr update");
@@ -142,57 +140,29 @@ function triggerTask(name,done) {
       , task = require('./tasks/task')
       , scrape = null;
 
-    // perform a check on jsdelivr jobs as there may be a current update due to a webhook trigger
-    if (name === "jsdelivr") {
-      triggerJsdelivrSync();
-    }
-    else {
-      log.info("running task...", name, pattern);
+    log.info("running task...", name, pattern);
 
-      try {
-        scrape = require('./tasks/' + cdn)(github);
-        task(config.output, cdn, scrape)(function (err) {
+    try {
+      scrape = require('./tasks/' + cdn)(github);
+      task(config.output, cdn, scrape)(function (err) {
 
-          taskUpdating[name] = false;
-          if (err)
-            log.err(err);
+        taskUpdating[name] = false;
+        if (err)
+          log.err(err);
 
-          if (done)
-            done();
-        });
-      } catch (e) {
-        log.err(e);
         if (done)
           done();
-      }
+      });
+    } catch (e) {
+      log.err(e);
+      if (done)
+        done();
     }
   }
   else {
     log.info(name + " sync is currently in progress");
     if (done)
       done();
-  }
-}
-
-function triggerJsdelivrSync(done) {
-  if(!jsdelivrUpdating) {
-
-    //set the updating flag so we don't attempt multiple updates at the same time
-    jsdelivrUpdating = true;
-
-    var cdn = 'jsdelivr'
-      , task = require('./tasks/task')
-      , scrape = require('./tasks/' + cdn)(github);
-
-    task(config.output, cdn, scrape)(function (err) {
-      if (err)
-        log.err(err);
-      jsdelivrUpdating = false;
-      if(done)
-        done();
-    });
-  } else {
-    log.info("jsdelivr sync is currently in progress");
   }
 }
 
