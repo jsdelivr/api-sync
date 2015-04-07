@@ -1,6 +1,7 @@
 'use strict';
 
 var url = require('url')
+  , _ = require('lodash')
   , async = require('async')
   , extend = require('extend')
   , fp = require('annofp')
@@ -8,7 +9,6 @@ var url = require('url')
   , values = fp.values
   , request = require('request')
   , ini = require('ini')
-  , fs = require('fs')
   , path = require('path');
 
 var utils = require('../lib/utils')
@@ -24,18 +24,33 @@ module.exports = function(_github) {
 
   return function(cb) {
 
-    getFiles(function(err,files,etags) {
+    var repoOwner = "jsdelivr"
+      , repoName = "jsdelivr"
+      , filterFn = function(v) {
+        return v.name === 'files';
+      };
 
-      //write etags value to file
-      fs.writeFile(etagsFilePath, JSON.stringify(etags), function(err) {
-        if(err) {
-          log.err("failed to save jsdelivr etags ",err);
-        } else {
-          log.info("jsdelivr etags saved to " + etagsFilePath);
-        }
+    utils.githubGetFiles(github,repoOwner,repoName,filterFn,function(err,files) {
+
+      if(err) return cb(err);
+
+      var filtered = [];
+      function _allowed(file) {
+        var _path = file.path;
+        if(!(/100/g).test(file.mode))
+          return false;
+        if(!(/\//g).test(_path))
+          return false;
+
+        return true
+      }
+
+      _.each(files, function(file) {
+        if(_allowed(file))
+          filtered.push(file.path);
       });
 
-      parse(files, cb);
+      parse(filtered, cb);
     });
   };
 };
@@ -132,90 +147,5 @@ function parseIni(url, cb) {
     }
 
     cb(null, ini.parse(data));
-  });
-}
-
-function getFiles(cb) {
-
-  //attempt to get etags file
-  var etags;
-  try {
-    etags = require(etagsFilePath);
-  } catch(err) {
-    log.info('jsdelivr has no cached etags file, starting from scratch');
-    etags = {};
-  }
-
-  github.repos.getContent({
-    user: 'jsdelivr',
-    repo: 'jsdelivr',
-    path: ''
-  }, function(err, res) {
-    if(err) {
-      return cb(err);
-    }
-
-    var sha = res.filter(function(v) {
-      return v.name === 'files';
-    })[0].sha;
-
-    github.gitdata.getTree({
-      user: 'jsdelivr',
-      repo: 'jsdelivr',
-      sha: sha
-    }, function(err, res) {
-      if(err) {
-        return cb(err);
-      }
-
-      if(!res.tree) {
-        return cb(new Error('Missing tree'));
-      }
-
-      // get each dir under /files
-      var dirs = res.tree.filter(function(v) {
-        return v.mode.indexOf('040') === 0;
-      });
-
-      var files = [];
-
-      async.eachLimit(dirs, 8, function(dir, done) {
-
-        var config = {
-          user: 'jsdelivr',
-          repo: 'jsdelivr',
-          sha: dir.sha,
-          recursive: 1 // just recurse these smaller directories
-        };
-        if(etags[dir.sha]) // add conditional request
-          config.headers = {
-            "If-None-Match": etags[dir.sha]
-          };
-        github.gitdata.getTree(config, function(err, res) {
-          // skip invalid entries, don't abort the entire update
-          if (!err && res.tree) {
-            //console.log(JSON.stringify(res.meta));
-
-            //set sha => etag map so we know the response state
-            etags[dir.sha] = res.meta["etag"];
-            res.tree.forEach(function(file) {
-              // prepend the original base dir
-              file.path = dir.path + '/' + file.path;
-              files.push(file);
-            });
-          }
-
-          setImmediate(done);
-        });
-      }, function(err) {
-        var filtered = files.filter(function(v) {
-          return v.mode.indexOf('100') === 0;
-        }).map(prop('path')).filter(contains('/'));
-
-        cb(null, filtered, etags);
-      });
-
-
-    });
   });
 }

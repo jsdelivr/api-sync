@@ -9,7 +9,6 @@ var path = require('path')
   , express = require('express')
   , bodyParser = require('body-parser')
   , mkdirp = require('mkdirp')
-  , schedule = require('node-schedule')
   , _ = require('lodash')
 
   , config = require('./config')
@@ -32,8 +31,6 @@ if(config.githubToken) {
 }
 
 var jsdelivrUpdating = false;
-//var tasks = require('./tasks')(config.output, github);
-
 
 if(require.main === module) {
   main();
@@ -110,38 +107,63 @@ function serve(config, cb) {
 function initTasks(cb) {
   log.info('Initializing tasks');
 
-  _.each(Object.keys(config.tasks),function(name) {
+  // first kick off the tasks
+  async.eachSeries(Object.keys(config.tasks), function(name,done) {
+    triggerTask(name,done);
+    done()
+  }, function(err) {
 
-    var pattern = config.tasks[name]
-    ,  rule = new schedule.RecurrenceRule();
+    if(err) log.err("Error initializing tasks",err);
 
-    rule.minute = new schedule.Range(0, 59, pattern.minute);
+    //then set the intervals
+    _.each(Object.keys(config.tasks),function(name,i) {
 
-    schedule.scheduleJob(rule, function(name) {
+      var pattern = config.tasks[name];
 
-      var cdn = name
-        , task = require('./tasks/task')
-        , scrape = null;
+      // we want to space out the syncs by 3 minutes each
+      setInterval(function(name) {
 
-      log.info("running task...",name,pattern);
-
-      try
-      {
-        scrape = require('./tasks/' + cdn)(github);
-        task(config.output, cdn, scrape)(function (err) {
-          if (err)
-            log.err(err);
-        });
-      } catch(e) {
-        log.err(e);
-      }
-    }.bind(null,name));
+        triggerTask(name);
+      }.bind(null,name),6*(i*1e4 + pattern.minute*1e4));
+    });
   });
+}
+
+function triggerTask(name,done) {
+
+  var pattern = config.tasks[name];
+
+  var cdn = name
+    , task = require('./tasks/task')
+    , scrape = null;
+
+  // perform a check on jsdelivr jobs as there may be a current update due to a webhook trigger
+  if(name === "jsdelivr") {
+    triggerJsdelivrSync();
+  }
+  else {
+    log.info("running task...", name, pattern);
+
+    try {
+      scrape = require('./tasks/' + cdn)(github);
+      task(config.output, cdn, scrape)(function (err) {
+        if (err)
+          log.err(err);
+
+        if(done)
+          done();
+      });
+    } catch (e) {
+      log.err(e);
+      if(done)
+        done();
+    }
+  }
 }
 
 function triggerJsdelivrSync(done) {
   if(!jsdelivrUpdating) {
-    log.info("starting to update jsdelivr...");
+
     //set the updating flag so we don't attempt multiple updates at the same time
     jsdelivrUpdating = true;
 

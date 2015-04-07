@@ -19,9 +19,10 @@ module.exports = {
     email: ''
   },
   tasks: {
-    bootstrap: {minute: 1},
+    bootstrap: {minute: 3},
+    google: {minute: 3},
     cdnjs: {minute: 3},
-    google: {minute: 5}
+    jsdelivr: {minute: 3}
     //jquery: {minute: 5}
   }
 };
