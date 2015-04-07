@@ -1,65 +1,90 @@
 'use strict';
 
 var fp = require('annofp')
-  , not = fp.not
-  , prop = fp.prop
+  , _ = require("lodash")
   , values = fp.values;
 
 var log = require('../lib/log')
   , utils = require('../lib/utils')
-  , mail = require('../lib/mail')
-  , contains = utils.contains
-  , startsWith = utils.startsWith;
+  , mail = require('../lib/mail');
 
 var github;
 
 module.exports = function(_github) {
 
-    github = _github;
+  github = _github;
 
-    return function(cb) {
-        getFiles(function(err, files) {
-            if(err) {
-              var s = 'Failed to update bootstrap data!';
-              log.err(s, err);
-              mail.error(s);
-              return cb(err);
-            }
-            //=start v1 bugfix https://github.com/jsdelivr/api/issues/50
-            var objParsed = parse(files);
+  return function(cb) {
+    getFiles(function(err, files) {
+      if(err) {
+        var s = 'Failed to update bootstrap data!';
+        log.err(s, err);
+        mail.error(s);
+        return cb(err);
+      }
 
-            // clones sub-array that contains `"name": "twitter-bootstrap"` http://stackoverflow.com/a/15997913/1324588
-            var matchIndex,
-                objBootstrap = [],
-                objFixed = [];
-            objParsed.some(function(entry, i) { //some stops at first match
-                if (entry.name === "twitter-bootstrap") {
-                    matchIndex = i;
-                    return true;
-                }
-            });
-            objBootstrap = JSON.parse(JSON.stringify(objParsed[matchIndex])); // copys sub-array
-            objBootstrap.name = "bootstrap";
+      if(files.length) {
+        var objParsed = parse(files);
 
-            // merge & send fix, leaving "twitte;
-            cb(null, objParsed.concat(objBootstrap));
-            //=end v1 bugfix https://github.com/jsdelivr/api/issues/50
-
-/*
-            //=start v2 bugfix, dropping "twitter-bootstrap" compatabilty https://github.com/jsdelivr/api/issues/50
-            var objParsed = parse(files);
-
-            // simply replaces `"name": "twitter-bootstrap"` with "bootstrap"
-            objParsed.some(function(entry, i) { //some stops at first match
-                if (entry.name === "twitter-bootstrap") { entry.name = "bootstrap" }
-            });
-
-            cb(null, objParsed);
-            //=end v2 bugfix https://github.com/jsdelivr/api/issues/50
-*/
+        // clones sub-array that contains `"name": "twitter-bootstrap"` http://stackoverflow.com/a/15997913/1324588
+        var matchIndex,
+          objBootstrap = [],
+          objFixed = [];
+        objParsed.some(function (entry, i) { //some stops at first match
+          if (entry.name === "twitter-bootstrap") {
+            matchIndex = i;
+            return true;
+          }
         });
-    };
+        objBootstrap = JSON.parse(JSON.stringify(objParsed[matchIndex])); // copys sub-array
+        objBootstrap.name = "bootstrap";
+
+        cb(null, objParsed.concat(objBootstrap));
+      }
+      else {
+        cb(null,[]);
+      }
+    });
+  };
 };
+
+function getFiles(cb) {
+
+  var repoOwner = "maxcdn"
+    , repoName = "bootstrap-cdn"
+    , filterFn = function(v) {
+      return v.name === 'public';
+    };
+
+  function _allowed(file) {
+    var _path = file.path;
+    if(!(/100/g).test(file.mode))
+      return false;
+    if(!(/\//g).test(_path))
+      return false;
+
+    // ignore the images and stylesheets directories
+    if((/^images\//).test(_path))
+      return false;
+    if((/^stylesheets\//).test(_path))
+      return false;
+
+    return true
+  }
+
+  utils.githubGetFiles(github,repoOwner,repoName,filterFn,function(err,files) {
+
+    if(err) return cb(err);
+
+    var filtered = [];
+    _.each(files, function(file) {
+      if(_allowed(file)) {
+        filtered.push(file.path);
+      }
+    });
+    cb(null, filtered);
+  });
+}
 
 function parse(files) {
   var ret = {};
@@ -107,45 +132,5 @@ function parse(files) {
     v.assets = assets;
 
     return v;
-  });
-}
-
-function getFiles(cb) {
-  github.repos.getContent({
-    user: 'maxcdn',
-    repo: 'bootstrap-cdn',
-    path: ''
-  }, function(err, res) {
-    if(err) {
-      return cb(err);
-    }
-
-    var sha = res.filter(function(v) {
-      return v.name === 'public';
-    })[0].sha;
-
-    github.gitdata.getTree({
-      user: 'maxcdn',
-      repo: 'bootstrap-cdn',
-      sha: sha,
-      recursive: 1
-    }, function(err, res) {
-      if(err) {
-        return cb(err);
-      }
-
-      if(!res.tree) {
-        return cb(new Error('Missing tree'));
-      }
-
-      var filtered = res.tree.filter(function(v) {
-        return v.mode.indexOf('100') === 0;
-      }).map(prop('path')).
-        filter(contains('/')).
-        filter(not(startsWith('images/'))).
-        filter(not(startsWith('stylesheets/')));
-
-      cb(null, filtered);
-    });
   });
 }
