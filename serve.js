@@ -30,7 +30,8 @@ if(config.githubToken) {
   });
 }
 
-var jsdelivrUpdating = false;
+var jsdelivrUpdating = false
+  , taskUpdating = {};
 
 if(require.main === module) {
   main();
@@ -109,8 +110,8 @@ function initTasks(cb) {
 
   // first kick off the tasks
   async.eachSeries(Object.keys(config.tasks), function(name,done) {
+    taskUpdating[name] = false;
     triggerTask(name,done);
-    done()
   }, function(err) {
 
     if(err) log.err("Error initializing tasks",err);
@@ -118,46 +119,58 @@ function initTasks(cb) {
     //then set the intervals
     _.each(Object.keys(config.tasks),function(name,i) {
 
-      var pattern = config.tasks[name];
+      var pattern = config.tasks[name]
+        , interval = 6*(i*1e4 + pattern.minute*1e4);
 
       // we want to space out the syncs by 3 minutes each
       setInterval(function(name) {
-
         triggerTask(name);
-      }.bind(null,name),6*(i*1e4 + pattern.minute*1e4));
+      }.bind(null,name),interval);
     });
+
+    cb();
   });
 }
 
 function triggerTask(name,done) {
 
-  var pattern = config.tasks[name];
+  if(!taskUpdating[name]) {
+    taskUpdating[name] = true;
+    var pattern = config.tasks[name];
 
-  var cdn = name
-    , task = require('./tasks/task')
-    , scrape = null;
+    var cdn = name
+      , task = require('./tasks/task')
+      , scrape = null;
 
-  // perform a check on jsdelivr jobs as there may be a current update due to a webhook trigger
-  if(name === "jsdelivr") {
-    triggerJsdelivrSync();
+    // perform a check on jsdelivr jobs as there may be a current update due to a webhook trigger
+    if (name === "jsdelivr") {
+      triggerJsdelivrSync();
+    }
+    else {
+      log.info("running task...", name, pattern);
+
+      try {
+        scrape = require('./tasks/' + cdn)(github);
+        task(config.output, cdn, scrape)(function (err) {
+
+          taskUpdating[name] = false;
+          if (err)
+            log.err(err);
+
+          if (done)
+            done();
+        });
+      } catch (e) {
+        log.err(e);
+        if (done)
+          done();
+      }
+    }
   }
   else {
-    log.info("running task...", name, pattern);
-
-    try {
-      scrape = require('./tasks/' + cdn)(github);
-      task(config.output, cdn, scrape)(function (err) {
-        if (err)
-          log.err(err);
-
-        if(done)
-          done();
-      });
-    } catch (e) {
-      log.err(e);
-      if(done)
-        done();
-    }
+    log.info(name + " sync is currently in progress");
+    if (done)
+      done();
   }
 }
 
