@@ -52,7 +52,7 @@ function getFiles(cb) {
 
   var repoOwner = "maxcdn"
     , repoName = "bootstrap-cdn"
-    , filterFn = function(v) {
+    , rootShaFn = function(v) {
       return v.name === 'public';
     };
 
@@ -72,16 +72,11 @@ function getFiles(cb) {
     return true
   }
 
-  utils.githubGetFiles(github,repoOwner,repoName,filterFn,function(err,files) {
+  utils.githubGetFiles(github,repoOwner,repoName,rootShaFn,function(err,files) {
 
     if(err) return cb(err);
 
-    var filtered = [];
-    _.each(files, function(file) {
-      if(_allowed(file)) {
-        filtered.push(file.path);
-      }
-    });
+    var filtered = _.pluck(_.filter(files,_allowed),"path");
     cb(null, filtered);
   });
 }

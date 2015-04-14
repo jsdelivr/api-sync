@@ -5,7 +5,6 @@ var url = require('url')
   , async = require('async')
   , extend = require('extend')
   , fp = require('annofp')
-  , prop = fp.prop
   , values = fp.values
   , request = require('request')
   , ini = require('ini')
@@ -14,23 +13,17 @@ var url = require('url')
 var utils = require('../lib/utils')
   , log = require("../lib/log");
 
-var contains = utils.contains;
-var etagsFilePath = path.resolve(__dirname,'../data/jsdelivr_etags.json');
-var github;
-
-module.exports = function(_github) {
-
-  github = _github;
+module.exports = function(github) {
 
   return function(cb) {
 
     var repoOwner = "jsdelivr"
       , repoName = "jsdelivr"
-      , filterFn = function(v) {
+      , rootShaFn = function(v) {
         return v.name === 'files';
       };
 
-    utils.githubGetFiles(github,repoOwner,repoName,filterFn,function(err,files) {
+    utils.githubGetFiles(github,repoOwner,repoName,rootShaFn,function(err,files) {
 
       if(err) return cb(err);
 
@@ -45,11 +38,7 @@ module.exports = function(_github) {
         return true
       }
 
-      _.each(files, function(file) {
-        if(_allowed(file))
-          filtered.push(file.path);
-      });
-
+      filtered = _.pluck(_.filter(files,_allowed),"path");
       parse(filtered, cb);
     });
   };
