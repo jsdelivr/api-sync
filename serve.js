@@ -103,8 +103,9 @@ function serve(config, cb) {
   });
 }
 
+var intervalSet = false;
 function initTasks(cb) {
-  log.info('Initializing tasks');
+  log.info('Running tasks');
 
   // first kick off the tasks
   async.eachSeries(Object.keys(config.tasks), function(name,done) {
@@ -114,19 +115,22 @@ function initTasks(cb) {
 
     if(err) log.err("Error initializing tasks",err);
 
-    //then set the intervals
-    _.each(Object.keys(config.tasks),function(name,i) {
+    //then set the interval
+    if(!intervalSet) {
+      intervalSet = true;
+      var interval = 6 * (7 * 1e4);
 
-      var pattern = config.tasks[name]
-        , interval = 6*(i*1e4 + pattern.minute*1e4);
+      // we want to space out the start of each sync cycle by 7 minutes each
+      setInterval(function () {
+        initTasks(function(){
+          log.info("libraries synced!");
+          return true;
+        });
+      }, interval);
+    }
 
-      // we want to space out the syncs by 3 minutes each
-      setInterval(function(name) {
-        triggerTask(name);
-      }.bind(null,name),interval);
-    });
-
-    cb();
+    if(cb)
+      cb();
   });
 }
 
