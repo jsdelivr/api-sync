@@ -20,7 +20,7 @@ var path = require('path')
 var github = new GitHubApi({
   version: '3.0.0',
   protocol: 'https',
-  timeout: 5000
+  timeout: 10000
 });
 
 if(config.githubToken) {
