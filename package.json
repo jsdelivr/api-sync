@@ -1,6 +1,6 @@
 {
   "name": "jsdelivr-api-sync",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "jsDelivr API data sync",
   "private": true,
   "engines": {
