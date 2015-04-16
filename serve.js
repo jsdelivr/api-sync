@@ -13,7 +13,6 @@ var path = require('path')
 
   , config = require('./config')
   , log = require('./lib/log')
-  , mail = require('./lib/mail')
 
   , GitHubApi = require('github');
 
@@ -65,14 +64,18 @@ function handleExit() {
 
 function serve(config, cb) {
   var app = express();
-  var hour = 3600 * 1000;
   var staticPath = path.join(__dirname, config.output);
+
+  //health route for pingdom
+  app.get('/health', function(req,res) {
+    res.status(200).json({ "status":"jsdelivr api-sync application is up.", "date": new Date() });
+  });
+
+  //data files route
+  app.use('/data', express.static(staticPath));
+
+  //github webhook trigger route
   var webhookRouter = express.Router();
-
-  app.use('/data', express['static'](staticPath, {
-    maxAge: hour
-  }));
-
   webhookRouter.use(bodyParser.json({verify: verifyHmac}));
   webhookRouter.post('/',function(req,res) {
 
@@ -97,7 +100,6 @@ function serve(config, cb) {
       return cb(err);
     }
 
-  //  mail.notify("jsdelivr api-sync server is starting...");
     log.info('Node (version: ' + process.version + ') ' + process.argv[1] + ' started on ' + config.port + ' ...');
     cb();
   });
@@ -118,7 +120,7 @@ function initTasks(cb) {
     //then set the interval
     if(!intervalSet) {
       intervalSet = true;
-      var interval = 6 * (7 * 1e4);
+      var interval = 6 * (10 * 1e4);
 
       // we want to space out the start of each sync cycle by 7 minutes each
       setInterval(function () {
