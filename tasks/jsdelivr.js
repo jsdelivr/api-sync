@@ -4,8 +4,6 @@ var url = require('url')
   , _ = require('lodash')
   , async = require('async')
   , extend = require('extend')
-  , fp = require('annofp')
-  , values = fp.values
   , request = require('request')
   , ini = require('ini')
   , path = require('path');
@@ -106,26 +104,54 @@ function parse(files, cb) {
 
     setImmediate(cb);
   }, function(err) {
-    if(err) {
+    if (err) {
       return cb(err);
     }
 
-    //console.log(JSON.stringify(ret));
-    cb(null, values(ret).map(function(v) {
-      // convert assets to v1 format
-      var assets = [];
-
-      fp.each(function(version, files) {
-        assets.push({
-          version: version,
-          files: files
-        });
-      }, v.assets);
-
-      v.assets = assets;
-
+    var res = _.map(ret, function (v, k) {
+      v.assets = _.map(v.versions, function (version) {
+        return {version: version, files: v.assets[version]};
+      });
       return v;
-    }));
+    });
+
+    async.each(res, function (library, done) {
+      var defaultMainfile = library.mainfile;
+      async.eachLimit(library.assets, 8, function (versionAssets, done) {
+
+        if (_.includes(versionAssets.files, "mainfile")) {
+
+          // remove the mainfile entry
+          _.remove(versionAssets.files, function (file) {
+            return file === "mainfile";
+          });
+
+          // get mainfile value from github
+          var mainfileUrl = base + path.join(library.name, versionAssets.version, "mainfile");
+          request.get(mainfileUrl, function (err, res, data) {
+
+            if (!err && res.statusCode < 400) {
+              versionAssets.mainfile = data;
+              done();
+            }
+            else {
+              // can't find the mainfile, log an error and set it to the default
+              log.err("Unable to find mainfile for library " + library.name + " version " + versionAssets.version + " at url " + mainfileUrl);
+              versionAssets.mainfile = defaultMainfile;
+              done();
+            }
+          });
+        }
+        else {
+          // no alternate mainfile
+          versionAssets.mainfile = defaultMainfile;
+          done();
+        }
+      }, done);
+    }, function (err) {
+
+      cb(err, res);
+    });
   });
 }
 
