@@ -87,8 +87,9 @@ function parse(files, cb) {
       }
 
       //cdnjs represents file size by the kilobyte
-      var size = Math.floor(file.size/1000);
-      lib.assets[version].files.push({name: filename, size: size});
+      //remove from response, this is not needed by the jsdelivr api
+      //var size = Math.floor(file.size/1000);
+      lib.assets[version].files.push({name: filename});
 
       setImmediate(cb);
     }
@@ -115,7 +116,16 @@ function _toV1Format(ret) {
 function _parsePackage(url, cb)  {
 
   var _hasMaintainers = function(json) {
-    return (json.maintainers && json.maintainers.length);
+    return (typeof json.maintainers !== "undefined" && json.maintainers.length);
+  };
+
+  var _hasGithubRepository = function (json) {
+    if (typeof json.repositories !== "undefined") {
+      return _.find(json.repositories, function (repository) {
+        return (/github\.com/g).test(repository.url);
+      });
+    }
+    return false;
   };
 
   request.get(url, function(err, res, data) {
@@ -132,17 +142,21 @@ function _parsePackage(url, cb)  {
       resp.homepage = json.homepage || null;
       resp.description = json.description || null;
 
-      //TODO do we want to attempt something like this to fill in partial/missing metadata?
-      //
       //attempt to get author info from maintainers field
-      /*if(!resp.author && _hasMaintainers(json)) {
+      if (!resp.author && _hasMaintainers(json)) {
         resp.author = json.maintainers[0].name || null;
       }
 
       //attempt to get homepage info from maintainers field
-      if(!resp.homepage && _hasMaintainers(json)) {
+      if (!resp.homepage && _hasMaintainers(json)) {
         resp.homepage = json.maintainers[0].web || null;
-      }*/
+      }
+
+      //attempt to get github information from repositories field
+      var githubRepositoryObj = _hasGithubRepository(json);
+      if (!resp.github && githubRepositoryObj) {
+        resp.github = githubRepositoryObj.url;
+      }
 
     } catch (err) {console.error(err);}
 
