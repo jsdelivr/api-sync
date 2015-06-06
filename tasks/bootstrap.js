@@ -10,20 +10,20 @@ var log = require('../lib/log')
 
 var github;
 
-module.exports = function(_github) {
+module.exports = function (_github) {
 
   github = _github;
 
-  return function(cb) {
-    getFiles(function(err, files) {
-      if(err) {
+  return function (cb) {
+    getFiles(function (err, files) {
+      if (err) {
         var s = 'Failed to update bootstrap data!';
         log.err(s, err);
         mail.error(s);
         return cb(err);
       }
 
-      if(files.length) {
+      if (files.length) {
         var objParsed = parse(files);
 
         // clones sub-array that contains `"name": "twitter-bootstrap"` http://stackoverflow.com/a/15997913/1324588
@@ -42,7 +42,7 @@ module.exports = function(_github) {
         cb(null, objParsed.concat(objBootstrap));
       }
       else {
-        cb(null,[]);
+        cb(null, []);
       }
     });
   };
@@ -52,31 +52,31 @@ function getFiles(cb) {
 
   var repoOwner = "maxcdn"
     , repoName = "bootstrap-cdn"
-    , rootShaFn = function(v) {
+    , rootShaFn = function (v) {
       return v.name === 'public';
     };
 
   function _allowed(file) {
     var _path = file.path;
-    if(!(/100/g).test(file.mode))
+    if (!(/100/g).test(file.mode))
       return false;
-    if(!(/\//g).test(_path))
+    if (!(/\//g).test(_path))
       return false;
 
     // ignore the images and stylesheets directories
-    if((/^images\//).test(_path))
+    if ((/^images\//).test(_path))
       return false;
-    if((/^stylesheets\//).test(_path))
+    if ((/^stylesheets\//).test(_path))
       return false;
 
     return true
   }
 
-  utils.githubGetFiles(github,repoOwner,repoName,rootShaFn,function(err,files) {
+  utils.githubGetFiles(github, repoOwner, repoName, rootShaFn, function (err, files) {
 
-    if(err) return cb(err);
+    if (err) return cb(err);
 
-    var filtered = _.pluck(_.filter(files,_allowed),"path");
+    var filtered = _.pluck(_.filter(files, _allowed), "path");
     cb(null, filtered);
   });
 }
@@ -84,13 +84,13 @@ function getFiles(cb) {
 function parse(files) {
   var ret = {};
 
-  files.forEach(function(file) {
+  files.forEach(function (file) {
     var parts = file.split('/');
     var name = parts[0];
     var version = parts[1];
     var filename = parts.slice(2).join('/');
 
-    if(!(name in ret)) {
+    if (!(name in ret)) {
       ret[name] = {
         name: name,
         versions: [],
@@ -101,23 +101,23 @@ function parse(files) {
     var lib = ret[name];
 
     // version
-    if(lib.versions.indexOf(version) === -1) {
+    if (lib.versions.indexOf(version) === -1) {
       lib.versions.push(version);
     }
 
     // assets
-    if(!(version in lib.assets)) {
+    if (!(version in lib.assets)) {
       lib.assets[version] = [];
     }
 
     lib.assets[version].push(filename);
   });
 
-  return values(ret).map(function(v) {
+  return values(ret).map(function (v) {
     // convert assets to v1 format
     var assets = [];
 
-    fp.each(function(version, files) {
+    fp.each(function (version, files) {
       assets.push({
         version: version,
         files: files
