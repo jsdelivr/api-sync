@@ -63,10 +63,12 @@ function getFiles(cb) {
     if (!(/\//g).test(_path))
       return false;
 
-    // ignore the images and stylesheets directories
+    // ignore the images and stylesheets and javascripts directories
     if ((/^images\//).test(_path))
       return false;
     if ((/^stylesheets\//).test(_path))
+      return false;
+    if ((/^javascripts\//).test(_path))
       return false;
 
     return true
@@ -90,7 +92,7 @@ function parse(files) {
     var version = parts[1];
     var filename = parts.slice(2).join('/');
 
-    if (!(name in ret)) {
+    if (!(_.has(ret, name))) {
       ret[name] = {
         name: name,
         versions: [],
