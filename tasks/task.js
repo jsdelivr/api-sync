@@ -40,7 +40,7 @@ module.exports = function (output, target, scrape) {
 
       async.each(libraries, function (library, done) {
 
-        var p = path.resolve(__dirname, '../', output, target, library.name, library.name + '.json')
+        var p = path.resolve(__dirname, '../', output, target, library.name, 'library.json')
           , s = JSON.stringify(library);
 
         mkdirp(path.dirname(p), function (direrr) {
