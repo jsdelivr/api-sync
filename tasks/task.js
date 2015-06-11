@@ -38,7 +38,9 @@ module.exports = function (output, target, scrape) {
         return library;
       }).filter(id);
 
-      async.each(libraries, function (library, done) {
+      var syncedCount = 0
+        , errorCount = 0;
+      async.eachLimit(libraries, 50, function (library, done) {
 
         var p = path.resolve(__dirname, '../', output, target, library.name, 'library.json')
           , s = JSON.stringify(library);
@@ -46,8 +48,12 @@ module.exports = function (output, target, scrape) {
         mkdirp(path.dirname(p), function (direrr) {
           fs.writeFile(p, s, function (err) {
             if (direrr || err) {
+              errorCount++;
               log.err("Error writing file for library " + library.name, direrr || err);
-              log.err(library);
+            }
+            else {
+              syncedCount++;
+              log.info("Successfully synced CDN:library " + target + ":" + library.name);
             }
             done();
           });
@@ -57,7 +63,7 @@ module.exports = function (output, target, scrape) {
           log.err("Error syncing CDN " + target, err);
         }
         else {
-          log.info("Successfully synced CDN " + target);
+          log.info("Synced CDN " + target + ", successfully updated " + syncedCount + " libraries and failed to update " + errorCount + " libraries.");
         }
         cb(err);
       });
