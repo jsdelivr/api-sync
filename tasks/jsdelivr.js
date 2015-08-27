@@ -68,9 +68,9 @@ function parse(projects, cb) {
 
     delete versions['info.ini'];
     delete versions['update.json'];
-  }, cb);
-
-  return ret;
+  }, function(err) {
+    cb(err, ret);
+  });
 }
 
 

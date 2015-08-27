@@ -59,9 +59,9 @@ function parse(projects, cb) {
     });
 
     delete versions['package.json'];
-  }, cb);
-
-  return ret;
+  }, function(err) {
+    cb(err, ret);
+  });
 }
 
 function _hasMaintainers(json) {
@@ -76,29 +76,28 @@ function _getGithubRepository(json) {
 
 //map cdnjs package.json to jsdelivr api schema
 function parsePackage(path, cb) {
-
   fs.readFile(path, function(err, data) {
-    if(err) return cb(err);
+    if (err) return cb(err);
 
     var resp = {};
     try {
       var json = JSON.parse(data);
-      resp.mainfile = json.filename || null;
-      resp.author = json.author || null;
-      resp.lastversion = json.version || null;
-      resp.homepage = json.homepage || null;
-      resp.description = json.description || null;
+      resp.mainfile = _.result(json, 'filename', null);
+      resp.author = _.result(json, 'author', null);
+      resp.lastversion = _.result(json, 'version', null);
+      resp.homepage = _.result(json, 'homepage', null);
+      resp.description = _.result(json, 'description', null);
 
       var hasMaintainers = _hasMaintainers(json);
 
       //attempt to get author info from maintainers field
       if (!resp.author && hasMaintainers) {
-        resp.author = json.maintainers[0].name || null;
+        resp.author = _.result(json, 'maintainers[0].name', null);
       }
 
       //attempt to get homepage info from maintainers field
       if (!resp.homepage && hasMaintainers) {
-        resp.homepage = json.maintainers[0].web || null;
+        resp.homepage = _.result(json, 'maintainers[0].web', null);
       }
 
       //attempt to get github information from repositories field
