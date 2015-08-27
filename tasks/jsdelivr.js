@@ -18,9 +18,7 @@ module.exports = function(github, conf) {
   return function(cb) {
 
     repo.pull(function() {
-      var getFiles = gitUtils.getFiles;
-
-      getFiles({
+      gitUtils.getFiles({
         gitPath: conf.gitPath,
         filePath: 'files',
         configFile: 'info.ini'

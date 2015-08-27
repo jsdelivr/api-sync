@@ -1,16 +1,15 @@
 'use strict';
 
+var task = require('./task');
+
 module.exports = function(output, github) {
     //var cdns = ['bootstrap', 'cdnjs', 'google', 'jquery', 'jsdelivr'];
-    var cdns = ['bootstrap', 'cdnjs', 'google'];
-    //var cdns = ['jsdelivr'];
+    // var cdns = ['bootstrap', 'cdnjs', 'google'];
+    var cdns = ['jsdelivr', 'cdnjs'];
     //var cdns = ['cdnjs'];
     //var cdns = [];
-    var ret = {};
 
-    cdns.forEach(function(cdn) {
-        ret[cdn] = require('./task')(output, cdn, require('./' + cdn)(github));
-    });
-
-    return ret;
+    return cdns.reduce(function(ret, cdn) {
+        ret[cdn] = task(output, cdn, require('./' + cdn)(github));
+    }, {});
 };
