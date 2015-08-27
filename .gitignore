@@ -1,5 +1,5 @@
 data/
 node_modules/
 *.swp
-
+*.log
 .idea

@@ -22,8 +22,6 @@ module.exports = function (output, target, scrape) {
         return cb(err);
       }
 
-      var p = path.resolve(__dirname, '../', output, target + '.json');
-
       libraries = libraries.map(function (library) {
         library.versions = sortVersions(library.versions);
 

@@ -9,7 +9,7 @@ var url = require('url')
   , utils = require('../lib/utils');
 
 
-module.exports = function(github) {
+module.exports = function(github, conf) {
 
   return function(cb) {
 
