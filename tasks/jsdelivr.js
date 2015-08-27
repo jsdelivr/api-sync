@@ -44,6 +44,8 @@ function parse(projects, cb) {
     };
 
     parseIni(versions['info.ini'], function(err, conf) {
+      _.extend(proj, conf);
+
       async.eachOf(versions, function(files, version, cb) {
         // ignore info.ini and update.json
         if (typeof files === 'string') return cb();
