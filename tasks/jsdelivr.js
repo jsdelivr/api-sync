@@ -8,6 +8,7 @@ var gift = require('gift');
 var fs = require('fs');
 
 var gitUtils = require('../lib/git-utils');
+var log = require('../lib/log');
 
 module.exports = function(github, conf) {
   var repo = gift(conf.gitPath);
@@ -27,15 +28,20 @@ module.exports = function(github, conf) {
 };
 
 function parse(projects, cb) {
-  var ret = {};
+  var ret = [];
 
   async.eachOf(projects, function(versions, projectName, cb) {
-    var proj = ret[projectName] = {
+    var proj = {
       name: projectName,
       versions: [],
       assets: {}, // version -> assets
       zip: projectName + '.zip'
     };
+
+    if (typeof versions['info.ini'] !== 'string') {
+      log.warn(projectName + ' is missing info.ini -- SKIPPING');
+      return cb();
+    }
 
     parseIni(versions['info.ini'], function(err, conf) {
       _.extend(proj, conf);
@@ -59,7 +65,10 @@ function parse(projects, cb) {
         } else {
           cb();
         }
-      }, cb);
+      }, function() {
+        ret.push(proj);
+        cb();
+      });
     });
 
     delete versions['info.ini'];

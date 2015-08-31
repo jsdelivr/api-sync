@@ -19,7 +19,7 @@ module.exports = function(github, conf) {
     repo.pull(function() {
       gitUtils.getFiles({
         gitPath: conf.gitPath,
-        filePath: 'files',
+        filePath: 'ajax/libs',
         configFile: 'package.json'
       }, function(err, projects) {
         if (err) cb(err);
@@ -30,15 +30,20 @@ module.exports = function(github, conf) {
 };
 
 function parse(projects, cb) {
-  var ret = {};
+  var ret = [];
 
   async.eachOf(projects, function(versions, projectName, cb) {
-    var proj = ret[projectName] = {
+    var proj = {
       name: projectName,
       versions: [],
       assets: {}, // version -> assets
       zip: projectName + '.zip'
     };
+
+    if (typeof versions['package.json'] !== 'string') {
+      log.warn(projectName + ' is missing package.json -- SKIPPING');
+      return cb();
+    }
 
     parsePackage(versions['package.json'], function(err, conf) {
       _.extend(proj, conf);
@@ -54,6 +59,7 @@ function parse(projects, cb) {
         };
       });
 
+      ret.push(proj);
       cb();
     });
 
