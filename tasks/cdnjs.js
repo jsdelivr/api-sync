@@ -16,7 +16,6 @@ module.exports = function(github, conf) {
   var repo = gift(conf.gitPath);
 
   return function(cb) {
-
     repo.pull(function() {
       gitUtils.getFiles({
         gitPath: conf.gitPath,

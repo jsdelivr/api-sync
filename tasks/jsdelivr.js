@@ -5,18 +5,14 @@ var async = require('async');
 
 var ini = require('ini');
 var gift = require('gift');
-
-var path = require('path');
 var fs = require('fs');
 
 var gitUtils = require('../lib/git-utils');
-var log = require('../lib/log');
 
 module.exports = function(github, conf) {
   var repo = gift(conf.gitPath);
 
   return function(cb) {
-
     repo.pull(function() {
       gitUtils.getFiles({
         gitPath: conf.gitPath,
@@ -72,7 +68,6 @@ function parse(projects, cb) {
     cb(err, ret);
   });
 }
-
 
 function parseIni(p, cb) {
   fs.readFile(p, function(err, data) {
