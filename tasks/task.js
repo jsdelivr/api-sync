@@ -26,7 +26,7 @@ module.exports = function (output, target, scrape) {
         library.versions = sortVersions(library.versions);
 
         // skip if library is missing versions for some reason
-        if (!library.versions) {
+        if (!library.versions || !library.versions.length) {
           log.warn('Failed to find versions for', library);
           return;
         }
