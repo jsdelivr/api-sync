@@ -36,7 +36,7 @@ function parse(projects, cb) {
     var proj = {
       name: projectName,
       versions: [],
-      assets: {}, // version -> assets
+      assets: [], // version -> assets
       zip: projectName + '.zip'
     };
 
@@ -46,6 +46,11 @@ function parse(projects, cb) {
     }
 
     parsePackage(versions['package.json'], function(err, conf) {
+      if (err) {
+        // Skipping
+        log.warn('Failed to parse cdnjs package: ' + projectName, err);
+        return cb();
+      }
       _.extend(proj, conf);
 
       _.each(versions, function(files, version) {
@@ -53,10 +58,10 @@ function parse(projects, cb) {
         if (typeof files === 'string') return;
         
         proj.versions.push(version);
-        proj.assets[version] = {
+        proj.assets.push({
           files: files,
           version: version
-        };
+        });
       });
 
       ret.push(proj);
@@ -111,8 +116,7 @@ function parsePackage(path, cb) {
         resp.github = githubRepositoryObj.url;
       }
     } catch (_err) {
-      err = _err;
-      log.err(err);
+      return cb(err);
     }
 
     cb(err, resp);

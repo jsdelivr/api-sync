@@ -34,7 +34,7 @@ function parse(projects, cb) {
     var proj = {
       name: projectName,
       versions: [],
-      assets: {}, // version -> assets
+      assets: [], // version -> assets
       zip: projectName + '.zip'
     };
 
@@ -50,12 +50,13 @@ function parse(projects, cb) {
         // ignore info.ini and update.json
         if (typeof files === 'string') return cb();
         
-        proj.versions.push(version);
-        var asset = proj.assets[version] = {
+        var asset = {
           files: files, // note files may be modified in the next step
           version: version,
           mainfile: conf.mainfile
         };
+        proj.versions.push(version);
+        proj.assets.push(asset);
         if (_.contains(files, 'mainfile')) {
           _.pull(files, 'mainfile');
           fs.readFile('mainfile', function(err, f) {
