@@ -39,7 +39,7 @@ function parse(projects, cb) {
     };
 
     if (typeof versions['info.ini'] !== 'string') {
-      log.warn(projectName + ' is missing info.ini -- SKIPPING');
+      log.warning(projectName + ' is missing info.ini -- SKIPPING');
       return cb();
     }
 

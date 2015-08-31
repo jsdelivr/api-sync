@@ -41,7 +41,7 @@ function parse(projects, cb) {
     };
 
     if (typeof versions['package.json'] !== 'string') {
-      log.warn(projectName + ' is missing package.json -- SKIPPING');
+      log.warning(projectName + ' is missing package.json -- SKIPPING');
       return cb();
     }
 
