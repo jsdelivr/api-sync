@@ -20,21 +20,21 @@ module.exports = {
   },
   tasks: {
     'bootstrap-cdn': {
-      minute: 3
+      interval: 180
     },
     'google': {
-      minute: 3
+      interval: 180
     },
     'cdnjs': {
-      minute: 1,
+      interval: 180,
       gitPath: '/home/cdnjs',
       filePath: 'ajax/libs'
     },
     'jsdelivr': {
-      minute: 1,
+      interval: 180,
       gitPath: '/home/jsdelivr',
       filePath: 'files'
     }
-    //jquery: {minute: 5}
+    //jquery: {interval: 300}
   }
 };

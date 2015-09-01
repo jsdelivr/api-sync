@@ -68,7 +68,7 @@ function serve(config, cb) {
 
   //health route for pingdom
   app.get('/health', function(req,res) {
-    res.status(200).json({ "status":"jsdelivr api-sync application is up.", "date": new Date() });
+    res.status(200).json({ 'status':'jsdelivr api-sync application is up.', 'date': new Date() });
   });
 
   //data files route
@@ -79,12 +79,12 @@ function serve(config, cb) {
   webhookRouter.use(bodyParser.json({verify: verifyHmac}));
   webhookRouter.post('/',function(req,res) {
 
-    if(req.body && req.body.ref && req.body.ref === "refs/heads/master") {
-      log.info("Webhook received for push to jsdelvr master branch - begin jsdelivr update");
-      triggerTask("jsdelivr");
+    if(req.body && req.body.ref && req.body.ref === 'refs/heads/master') {
+      log.info('Webhook received for push to jsdelvr master branch - begin jsdelivr update');
+      triggerTask('jsdelivr');
     }
     else {
-      log.info("Webhook received for push to jsdelvr branch other than master - do not begin jsdelivr update");
+      log.info('Webhook received for push to jsdelvr branch other than master - do not begin jsdelivr update');
     }
     res.status(200).end();
   });
@@ -115,7 +115,7 @@ function initTasks(cb) {
     triggerTask(name, done);
   }, function(err) {
 
-    if(err) log.err("Error initializing tasks",err);
+    if(err) log.err('Error initializing tasks',err);
 
     //then set the interval
     if(!intervalSet) {
@@ -125,7 +125,7 @@ function initTasks(cb) {
       // we want to space out the start of each sync cycle by 30 minutes each
       setInterval(function () {
         initTasks(function(){
-          log.info("libraries synced!");
+          log.info('libraries synced!');
           return true;
         });
       }, interval);
@@ -146,7 +146,7 @@ function triggerTask(name,done) {
       , task = require('./tasks/task')
       , scrape = null;
 
-    log.info("running task...", name, conf);
+    log.info('running task...', name, conf);
 
     try {
       scrape = require('./tasks/' + cdn)(github, conf);
@@ -166,7 +166,7 @@ function triggerTask(name,done) {
     }
   }
   else {
-    log.info(name + " sync is currently in progress");
+    log.info(name + ' sync is currently in progress');
     if (done)
       done();
   }
@@ -175,20 +175,20 @@ function triggerTask(name,done) {
 //verify github webhook push
 function verifyHmac(req, res, buf) {
 
-  var hash = req.header("X-Hub-Signature"),
-    hmac = crypto.createHmac("sha1", config.webhookSecret);
+  var hash = req.header('X-Hub-Signature'),
+    hmac = crypto.createHmac('sha1', config.webhookSecret);
 
   hmac.update(buf);
 
-  var crypted = 'sha1=' +  hmac.digest("hex");
+  var crypted = 'sha1=' +  hmac.digest('hex');
 
   if(crypted === hash) {
     // Valid request, do nothing
-    log.info("Webhook signature is valid, jsdelivr update can proceed - providedSignature: " + hash + ", calculatedSignature: " + crypted);
+    log.info('Webhook signature is valid, jsdelivr update can proceed - providedSignature: ' + hash + ', calculatedSignature: ' + crypted);
   } else {
     // Invalid request
-    log.info("Webhook signature is NOT VALID, jsdelivr update WILL NOT proceed - providedSignature: " + hash + ", calculatedSignature: " + crypted);
-    var error = { status: 400, body: "Wrong signature" };
+    log.info('Webhook signature is NOT VALID, jsdelivr update WILL NOT proceed - providedSignature: ' + hash + ', calculatedSignature: ' + crypted);
+    var error = { status: 400, body: 'Wrong signature' };
     throw error;
   }
 }
@@ -198,12 +198,12 @@ function terminator(sig) {
     var s = 'Received ' + sig + ' - terminating Node server ...';
     log.info(s);
 
-    //mail.notify("jsdelivr api-sync server has stopped.",function(err,data) {
+    //mail.notify('jsdelivr api-sync server has stopped.',function(err,data) {
       log.end();
       process.exit(1);
     //});
   } else {
-    //mail.notify("jsdelivr api-sync server has stopped.");
+    //mail.notify('jsdelivr api-sync server has stopped.');
     log.info('Node server stopped.');
     log.end();
   }
