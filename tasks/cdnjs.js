@@ -16,7 +16,9 @@ module.exports = function(github, conf) {
   var repo = gift(conf.gitPath);
 
   return function(cb) {
+    log.info('Pulling changes for the cdnjs repo...');
     repo.pull(function() {
+      log.info('Done pull...');
       gitUtils.getFiles({
         gitPath: conf.gitPath,
         filePath: 'ajax/libs',
