@@ -27,11 +27,11 @@ module.exports = {
     },
     'cdnjs': {
       minute: 1,
-      gitPath: '/home/gyeates/code/cdnjs'
+      gitPath: '/home/cdnjs'
     },
     'jsdelivr': {
       minute: 1,
-      gitPath: '/home/gyeates/code/jsdelivr'
+      gitPath: '/home/jsdelivr'
     }
     //jquery: {minute: 5}
   }
