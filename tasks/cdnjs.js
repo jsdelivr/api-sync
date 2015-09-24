@@ -17,7 +17,11 @@ module.exports = function(github, conf) {
 
   return function(cb) {
     log.info('Pulling changes for the cdnjs repo...');
-    repo.pull(function() {
+    repo.pull(function(err) {
+      if (err) {
+        cb(err);
+        return log.err('Could not pull repo' + conf.gitPath);
+      }
       log.info('Done pull...');
       gitUtils.getFiles({
         gitPath: conf.gitPath,
