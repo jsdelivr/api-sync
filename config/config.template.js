@@ -19,7 +19,7 @@ module.exports = {
     email: ''
   },
   tasks: {
-    'bootstrap-cdn': {
+    /*'bootstrap-cdn': {
       minute: 3
     },
     'google': {
@@ -27,11 +27,13 @@ module.exports = {
     },
     'cdnjs': {
       minute: 1,
-      gitPath: '/home/cdnjs'
-    },
+      gitPath: '/home/cdnjs',
+      filePath: 'ajax/libs'
+    },*/
     'jsdelivr': {
       minute: 1,
-      gitPath: '/home/jsdelivr'
+      gitPath: '/home/jsdelivr',
+      filePath: 'files'
     }
     //jquery: {minute: 5}
   }
