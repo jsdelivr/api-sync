@@ -127,9 +127,7 @@ function _inferEtags(target, gitPath, filePath, cb) {
               };
             });
 
-            fs.writeFile(etagsFilePath, JSON.stringify(_.map(etags, function (metadata) {
-              return metadata
-            })), function (err) {
+            fs.writeFile(etagsFilePath, JSON.stringify(etags), function (err) {
               if (err) {
                 log.err("failed to save " + target + " etags ", err);
               } else {
