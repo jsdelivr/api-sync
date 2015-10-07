@@ -112,7 +112,7 @@ function initTasks(cb) {
   // first kick off the tasks
   async.eachSeries(Object.keys(config.tasks), function(name,done) {
     taskUpdating[name] = false;
-    triggerTask(name,done);
+    triggerTask(name, done);
   }, function(err) {
 
     if(err) log.err("Error initializing tasks",err);
@@ -140,16 +140,16 @@ function triggerTask(name,done) {
 
   if(!taskUpdating[name]) {
     taskUpdating[name] = true;
-    var pattern = config.tasks[name];
+    var conf = config.tasks[name];
 
     var cdn = name
       , task = require('./tasks/task')
       , scrape = null;
 
-    log.info("running task...", name, pattern);
+    log.info("running task...", name, conf);
 
     try {
-      scrape = require('./tasks/' + cdn)(github);
+      scrape = require('./tasks/' + cdn)(github, conf);
       task(config.output, cdn, scrape)(function (err) {
 
         taskUpdating[name] = false;

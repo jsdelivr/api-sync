@@ -1,166 +1,130 @@
 'use strict';
 
-var url = require('url')
-  , request = require('request')
-  , _ = require("lodash")
-  , async = require("async")
+var _ = require('lodash');
+var async = require('async');
 
-  , log = require('../lib/log')
-  , utils = require('../lib/utils');
+var gift = require('gift');
+
+var path = require('path');
+var fs = require('fs');
+
+var gitUtils = require('../lib/git-utils');
+var log = require('../lib/log');
 
 
-module.exports = function(github) {
+module.exports = function(github, conf) {
+  var repo = gift(conf.gitPath);
 
   return function(cb) {
-
-    var repoOwner = "cdnjs"
-      , repoName = "cdnjs"
-      , rootShaFn = function(v) {
-        return v.name === 'libs';
-      };
-
-    utils.githubGetFiles(github,repoOwner,repoName,rootShaFn,function(err,files) {
-
-      if(err) return cb(err);
-
-      var filtered = [];
-      function _allowed(file) {
-        var _path = file.path;
-        if(!(/100/g).test(file.mode))
-          return false;
-        if(!(/\//g).test(_path))
-          return false;
-
-        return true
+    log.info('Pulling changes for the cdnjs repo...');
+    repo.pull(function(err) {
+      if (err) {
+        cb(err);
+        return log.err('Could not pull repo' + conf.gitPath);
       }
-
-      filtered = _.filter(files,_allowed);
-      parse(filtered, cb);
-    }, {path:"/ajax"});
+      log.info('Done pull...');
+      gitUtils.getFiles({
+        gitPath: conf.gitPath,
+        filePath: 'ajax/libs',
+        configFile: 'package.json'
+      }, function(err, projects) {
+        if (err) cb(err);
+        else parse(projects, cb);
+      });
+    });
   };
 };
 
-function parse(files, cb) {
-  var base = 'https://raw.githubusercontent.com/cdnjs/cdnjs/master/ajax/libs/';
-  var ret = {};
+function parse(projects, cb) {
+  var ret = [];
 
-  async.eachLimit(files, 4, function(file, cb) {
+  async.eachOf(projects, function(versions, projectName, cb) {
+    var proj = {
+      name: projectName,
+      versions: [],
+      assets: [], // version -> assets
+      zip: projectName + '.zip'
+    };
 
-    var parts = file.path.split('/')
-      , name = parts[0]
-      , filename, version;
-
-    //init libary object form
-    if(!(name in ret)) {
-      ret[name] = {
-        name: name,
-        versions: [],
-        assets: {} // version -> assets
-      };
+    if (typeof versions['package.json'] !== 'string') {
+      log.warning(projectName + ' is missing package.json -- SKIPPING');
+      return cb();
     }
 
-    if(parts.length === 2 && parts[1] === "package.json") {
-      return _parsePackage(url.resolve(base, file.path), function(err, d) {
-        if(err) {
-          return setImmediate(cb.bind(null, err));
-        }
+    parsePackage(versions['package.json'], function(err, conf) {
+      if (err) {
+        // Skipping
+        log.warn('Failed to parse cdnjs package: ' + projectName, err);
+        return cb();
+      }
+      _.extend(proj, conf);
 
-        _.extend(ret[name], d);
-
-        setImmediate(cb);
+      _.each(versions, function(files, version) {
+        // ignore info.ini and update.json
+        if (typeof files === 'string') return;
+        
+        proj.versions.push(version);
+        proj.assets.push({
+          files: files,
+          version: version
+        });
       });
-    } else {
 
-      version = parts[1];
-      filename = parts.slice(2).join('/');
+      ret.push(proj);
+      cb();
+    });
 
-      var lib = ret[name];
-
-      // version
-      if (lib.versions.indexOf(version) === -1) {
-        lib.versions.push(version);
-      }
-
-      // assets
-      if (!(version in lib.assets)) {
-        lib.assets[version] = {version:version,files:[]};
-      }
-
-      //cdnjs represents file size by the kilobyte
-      //remove from response, this is not needed by the jsdelivr api
-      //var size = Math.floor(file.size/1000);
-      lib.assets[version].files.push({name: filename});
-
-      setImmediate(cb);
-    }
+    delete versions['package.json'];
   }, function(err) {
-
-    if(err)
-      cb(err);
-    else
-      cb(null,_toV1Format(ret));
+    cb(err, ret);
   });
 }
 
-//massage the response data according to v1 format
-function _toV1Format(ret) {
-  return _.map(ret, function(library) {
-    library.assets = _.map(library.assets, function(asset) {
-      return {version:asset.version,files:asset.files};
-    });
-    return library;
+function _hasMaintainers(json) {
+  return typeof json.maintainers !== 'undefined' && json.maintainers.length;
+}
+
+function _getGithubRepository(json) {
+  return _.find(json.repositories, function (repository) {
+    return (/github\.com/).test(repository.url);
   });
 }
 
 //map cdnjs package.json to jsdelivr api schema
-function _parsePackage(url, cb)  {
-
-  var _hasMaintainers = function(json) {
-    return (typeof json.maintainers !== "undefined" && json.maintainers.length);
-  };
-
-  var _hasGithubRepository = function (json) {
-    if (typeof json.repositories !== "undefined") {
-      return _.find(json.repositories, function (repository) {
-        return (/github\.com/g).test(repository.url);
-      });
-    }
-    return false;
-  };
-
-  request.get(url, function(err, res, data) {
-    if(err) {
-      return cb(err);
-    }
+function parsePackage(path, cb) {
+  fs.readFile(path, function(err, data) {
+    if (err) return cb(err);
 
     var resp = {};
     try {
       var json = JSON.parse(data);
-      resp.mainfile = json.filename || null;
-      resp.author = json.author || null;
-      resp.lastversion = json.version || null;
-      resp.homepage = json.homepage || null;
-      resp.description = json.description || null;
+      resp.mainfile = _.result(json, 'filename', null);
+      resp.author = _.result(json, 'author', null);
+      resp.lastversion = _.result(json, 'version', null);
+      resp.homepage = _.result(json, 'homepage', null);
+      resp.description = _.result(json, 'description', null);
+
+      var hasMaintainers = _hasMaintainers(json);
 
       //attempt to get author info from maintainers field
-      if (!resp.author && _hasMaintainers(json)) {
-        resp.author = json.maintainers[0].name || null;
+      if (!resp.author && hasMaintainers) {
+        resp.author = _.result(json, 'maintainers[0].name', null);
       }
 
       //attempt to get homepage info from maintainers field
-      if (!resp.homepage && _hasMaintainers(json)) {
-        resp.homepage = json.maintainers[0].web || null;
+      if (!resp.homepage && hasMaintainers) {
+        resp.homepage = _.result(json, 'maintainers[0].web', null);
       }
 
       //attempt to get github information from repositories field
-      var githubRepositoryObj = _hasGithubRepository(json);
+      var githubRepositoryObj = _getGithubRepository(json);
       if (!resp.github && githubRepositoryObj) {
         resp.github = githubRepositoryObj.url;
       }
+    } catch (_err) {
+      return cb(err);
+    }
 
-    } catch (err) {console.error(err);}
-
-    cb(null, resp);
+    cb(err, resp);
   });
 }
-

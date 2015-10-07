@@ -9,8 +9,8 @@ module.exports = {
     port: ''
   },
   smtpAuth: {
-      user: '',
-      pass: ''
+    user: '',
+    pass: ''
   },
   smtpTo: {
     email: ''
@@ -19,10 +19,22 @@ module.exports = {
     email: ''
   },
   tasks: {
-    "bootstrap-cdn": {minute: 3},
-    "google": {minute: 3},
-    "cdnjs": {minute: 3},
-    "jsdelivr": {minute: 3}
+    'bootstrap-cdn': {
+      minute: 3
+    },
+    'google': {
+      minute: 3
+    },
+    'cdnjs': {
+      minute: 1,
+      gitPath: '/home/cdnjs',
+      filePath: 'ajax/libs'
+    },
+    'jsdelivr': {
+      minute: 1,
+      gitPath: '/home/jsdelivr',
+      filePath: 'files'
+    }
     //jquery: {minute: 5}
   }
 };

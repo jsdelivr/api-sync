@@ -1,166 +1,92 @@
 'use strict';
 
-var url = require('url')
-  , _ = require('lodash')
-  , async = require('async')
-  , extend = require('extend')
-  , request = require('request')
-  , ini = require('ini')
-  , path = require('path');
+var _ = require('lodash');
+var async = require('async');
 
-var utils = require('../lib/utils')
-  , log = require("../lib/log");
+var ini = require('ini');
+var gift = require('gift');
+var fs = require('fs');
 
-module.exports = function(github) {
+var gitUtils = require('../lib/git-utils');
+var log = require('../lib/log');
+
+module.exports = function(github, conf) {
+  var repo = gift(conf.gitPath);
 
   return function(cb) {
-
-    var repoOwner = "jsdelivr"
-      , repoName = "jsdelivr"
-      , rootShaFn = function(v) {
-        return v.name === 'files';
-      };
-
-    utils.githubGetFiles(github,repoOwner,repoName,rootShaFn,function(err,files) {
-
-      if(err) return cb(err);
-
-      var filtered = [];
-      function _allowed(file) {
-        var _path = file.path;
-        if(!(/100/g).test(file.mode))
-          return false;
-        if(!(/\//g).test(_path))
-          return false;
-
-        return true
+    log.info('Pulling changes for the jsdelivr repo...');
+    repo.pull(function(err) {
+      if (err) {
+        cb(err);
+        return log.err('Could not pull repo' + conf.gitPath);
       }
-
-      filtered = _.pluck(_.filter(files,_allowed),"path");
-      parse(filtered, cb);
+      log.info('Done pull...');
+      gitUtils.getFiles({
+        gitPath: conf.gitPath,
+        filePath: 'files',
+        configFile: 'info.ini'
+      }, function(err, projects) {
+        if (err) return cb(err);
+        parse(projects, cb);
+      });
     });
   };
 };
 
-function parse(files, cb) {
-  var base = 'https://raw.githubusercontent.com/jsdelivr/jsdelivr/master/files/';
-  var ret = {};
+function parse(projects, cb) {
+  var ret = [];
 
-  async.eachLimit(files, 4, function(file, cb) {
-    var parts = file.split('/');
-    var name = parts[0];
-    var filename, version;
+  async.eachOf(projects, function(versions, projectName, cb) {
+    var proj = {
+      name: projectName,
+      versions: [],
+      assets: [], // version -> assets
+      zip: projectName + '.zip'
+    };
 
-    if(parts.length === 2) {
-      if(parts[1] === 'info.ini') {
-        return parseIni(url.resolve(base, file), function(err, d) {
-          if(err) {
-            return setImmediate(cb.bind(null, err));
-          }
-
-          if(!(name in ret)) {
-            ret[name] = {
-              name: name,
-              versions: [],
-              assets: {}, // version -> assets
-              zip: name + '.zip'
-            };
-          }
-
-          ret[name] = extend(ret[name], d);
-
-          setImmediate(cb);
-        });
-      }
-
-      return setImmediate(cb);
-    }
-    else {
-      version = parts[1];
-      filename = parts.slice(2).join('/');
+    if (typeof versions['info.ini'] !== 'string') {
+      log.warning(projectName + ' is missing info.ini -- SKIPPING');
+      return cb();
     }
 
-    if(!(name in ret)) {
-      ret[name] = {
-        name: name,
-        versions: [],
-        assets: {} // version -> assets
-      };
-    }
+    parseIni(versions['info.ini'], function(err, conf) {
+      _.extend(proj, conf);
 
-    var lib = ret[name];
-
-    // version
-    if(lib.versions.indexOf(version) === -1) {
-      lib.versions.push(version);
-    }
-
-    // assets
-    if(!(version in lib.assets)) {
-      lib.assets[version] = [];
-    }
-
-    lib.assets[version].push(filename);
-
-    setImmediate(cb);
-  }, function(err) {
-    if (err) {
-      return cb(err);
-    }
-
-    var res = _.map(ret, function (v, k) {
-      v.assets = _.map(v.versions, function (version) {
-        return {version: version, files: v.assets[version]};
+      async.eachOf(versions, function(files, version, cb) {
+        // ignore info.ini and update.json
+        if (typeof files === 'string') return cb();
+        
+        var asset = {
+          files: files, // note files may be modified in the next step
+          version: version,
+          mainfile: conf.mainfile
+        };
+        proj.versions.push(version);
+        proj.assets.push(asset);
+        if (_.contains(files, 'mainfile')) {
+          _.pull(files, 'mainfile');
+          fs.readFile('mainfile', function(err, f) {
+            asset.mainfile = String(f);
+            cb();
+          });
+        } else {
+          cb();
+        }
+      }, function() {
+        ret.push(proj);
+        cb();
       });
-      return v;
     });
 
-    async.each(res, function (library, done) {
-      var defaultMainfile = library.mainfile;
-      async.eachLimit(library.assets, 8, function (versionAssets, done) {
-
-        if (_.includes(versionAssets.files, "mainfile")) {
-
-          // remove the mainfile entry
-          _.remove(versionAssets.files, function (file) {
-            return file === "mainfile";
-          });
-
-          // get mainfile value from github
-          var mainfileUrl = base + path.join(library.name, versionAssets.version, "mainfile");
-          request.get(mainfileUrl, function (err, res, data) {
-
-            if (!err && res.statusCode < 400) {
-              versionAssets.mainfile = data;
-              done();
-            }
-            else {
-              // can't find the mainfile, log an error and set it to the default
-              log.err("Unable to find mainfile for library " + library.name + " version " + versionAssets.version + " at url " + mainfileUrl);
-              versionAssets.mainfile = defaultMainfile;
-              done();
-            }
-          });
-        }
-        else {
-          // no alternate mainfile
-          versionAssets.mainfile = defaultMainfile;
-          done();
-        }
-      }, done);
-    }, function (err) {
-
-      cb(err, res);
-    });
+    delete versions['info.ini'];
+    delete versions['update.json'];
+  }, function(err) {
+    cb(err, ret);
   });
 }
 
-function parseIni(url, cb) {
-  request.get(url, function(err, res, data) {
-    if(err) {
-      return cb(err);
-    }
-
-    cb(null, ini.parse(data));
+function parseIni(p, cb) {
+  fs.readFile(p, function(err, data) {
+    cb(err, ini.parse(String(data)));
   });
 }
