@@ -121,7 +121,7 @@ function _inferEtags(target, gitPath, filePath, cb) {
 
             var etags = _.map(projTrees, function (projTree) {
               return {
-                name: projTree.name,
+                path: projTree.name,
                 etag: "\"" + projTree.id + "\"",
                 sha: projTree.id
               };
