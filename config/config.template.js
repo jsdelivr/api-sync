@@ -9,8 +9,8 @@ module.exports = {
     port: ''
   },
   smtpAuth: {
-      user: '',
-      pass: ''
+    user: '',
+    pass: ''
   },
   smtpTo: {
     email: ''
@@ -27,11 +27,13 @@ module.exports = {
     },
     'cdnjs': {
       minute: 1,
-      gitPath: '/home/cdnjs'
+      gitPath: '/home/cdnjs',
+      filePath: 'ajax/libs'
     },
     'jsdelivr': {
       minute: 1,
-      gitPath: '/home/jsdelivr'
+      gitPath: '/home/jsdelivr',
+      filePath: 'files'
     }
     //jquery: {minute: 5}
   }
