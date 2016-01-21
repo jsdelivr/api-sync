@@ -50,6 +50,11 @@ function parse(projects, cb) {
     }
 
     parseIni(versions['info.ini'], function(err, conf) {
+      if (conf.hide === true || conf.hide === "true") {
+        log.info(projectName + ' has a property "hide" set to "true" -- SKIPPING');
+        return cb();
+      }
+
       _.extend(proj, conf);
 
       if (conf.github) {
