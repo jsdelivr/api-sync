@@ -16,7 +16,7 @@ var fs = require('fs')
 module.exports = function (output, target, scrape) {
   return function (cb) {
     log.info('Starting to update ' + target + ' data');
-    let eTagMap = {};
+    var eTagMap = {};
 
     scrape(function (err, libraries) {
       if (err) {
@@ -121,11 +121,11 @@ function _inferEtags(target, gitPath, filePath, map, cb) {
 
             if (Object.keys(map).length) {
               etags = _.map(map, function (gitPath, path) {
-                let id = (gitPath === '/' ? dataDirTree : _.find(projTrees, tree => tree.name === gitPath)).id;
+                var id = (gitPath === '/' ? dataDirTree : _.find(projTrees, function (tree) { return tree.name === gitPath; })).id;
 
                 return {
                   path: path,
-                  etag: `"${id}"`,
+                  etag: '"' + id + '"',
                   sha: id
                 };
               });
