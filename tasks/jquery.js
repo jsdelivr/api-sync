@@ -13,7 +13,7 @@ module.exports = function(github, conf) {
     return function (cb, eTagMap) {
         log.info('Pulling changes for the jquery repo...');
         repo.pull(function (err) {
-            let rootPath = path.join(conf.gitPath, conf.filePath);
+            var rootPath = path.join(conf.gitPath, conf.filePath);
 
             if (err) {
                 cb(err);
@@ -34,13 +34,13 @@ module.exports = function(github, conf) {
                     return cb(err);
                 }
 
-                cb(null, parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/'))))
+                cb(null, parse(files.map(function (file) { return path.relative(rootPath, file).replace(/\\/g, '/'); })))
             });
         });
     };
 };
 
-const patterns = {
+var patterns = {
     'jquery': /^jquery(?:-compat)?-(\d+(\.\d+){0,2}[^.]*)/i,
     'jquery-ui': /^ui\/(\d+(\.\d+){0,2}[^/]*)/i,
     'jquery-mobile': /^mobile\/(\d+(\.\d+){0,2}[^/]*)/i,
@@ -54,15 +54,15 @@ function parse(files) {
     var ret = {};
 
     files.forEach(function (file) {
-        let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
-        let name = _.findKey(patterns, pattern => pattern.test(fName));
+        var fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
+        var name = _.findKey(patterns, function (pattern) { return pattern.test(fName); });
 
         if (name) {
-            let version = fName.match(patterns[name])[1];
+            var version = fName.match(patterns[name])[1];
 
             if (!ret[name]) {
                 ret[name] = {
-                    name,
+                    name: name,
                     versions: [],
                     assets: {}
                 }
@@ -80,10 +80,10 @@ function parse(files) {
         }
     });
 
-    return _.map(ret, (project) => {
+    return _.map(ret, function (project) {
         // convert to v1 format
-        project.assets = _.map(project.assets, (files, version) => {
-            return { files, version };
+        project.assets = _.map(project.assets, function (files, version) {
+            return { files: files, version: version };
         });
 
         return project;
