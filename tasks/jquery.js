@@ -1,143 +1,91 @@
 'use strict';
 
-var fp = require('annofp');
-var prop = fp.prop;
-var values = fp.values;
+var gift = require('gift');
+var path = require('path');
+var readDirRecursive = require('recursive-readdir');
+var _ = require('lodash');
 
+var log = require('../lib/log');
 
-module.exports = function(github) {
-    return function(cb) {
-        getFiles(function(err, files) {
-            if(err) {
-                return cb(err);
+module.exports = function(github, conf) {
+    var repo = gift(conf.gitPath);
+
+    return function (cb, eTagMap) {
+        log.info('Pulling changes for the jquery repo...');
+        repo.pull(function (err) {
+            let rootPath = path.join(conf.gitPath, conf.filePath);
+
+            if (err) {
+                cb(err);
+                return log.err('Could not pull repo' + conf.gitPath);
             }
+            log.info('Done pull...');
 
-            cb(null, parse(files));
-        });
-    };
+            eTagMap['jquery'] = '/';
+            eTagMap['jquery.color'] = 'color';
+            eTagMap['jquery.migrate'] = '/';
+            eTagMap['jquery-mobile'] = 'mobile';
+            eTagMap['jquery-ui'] = 'ui';
+            eTagMap['pep'] = 'pep';
+            eTagMap['qunit'] = 'qunit';
 
-    function parse(files) {
-        var ret = {};
-
-        files.forEach(function(file) {
-            var parts = file.split('/');
-            var filename, name, version;
-
-            if(parts.length > 1) {
-                filename = parts.join('/');
-
-                if(parts[0] === 'mobile' || parts[0] === 'ui') {
-                    name = 'jquery-' + parts[0];
-                    version = parts[1];
-                }
-                else {
-                    name = parseName(filename.split('/').slice(-1).join('/'));
-                    version = parseVersion(filename);
-            }
-            }
-            else {
-                filename = parts[0];
-                name = parseName(filename);
-                version = parseVersion(filename);
-            }
-
-            if(!name) {
-                return;
-            }
-
-            if(!(name in ret)) {
-                ret[name] = {
-                    name: name,
-                    versions: [],
-                    assets: {} // version -> assets
-                };
-            }
-
-            var lib = ret[name];
-
-            // version
-            if(lib.versions.indexOf(version) === -1) {
-                lib.versions.push(version);
-            }
-
-            // assets
-            if(!(version in lib.assets)) {
-                lib.assets[version] = [];
-            }
-
-            lib.assets[version].push(filename);
-        });
-
-        return values(ret).map(function(v) {
-            // convert assets to v1 format
-            var assets = [];
-
-            fp.each(function(version, files) {
-                assets.push({
-                    version: version,
-                    files: files
-                });
-            }, v.assets);
-
-            v.assets = assets;
-
-            return v;
-        });
-    }
-
-    function parseName(str) {
-        if(str.indexOf('LICENSE') >= 0) {
-            return;
-        }
-
-        var parts = str.split('-');
-
-        if(parts.length) {
-            return str.split('-')[0];
-        }
-    }
-
-    function parseVersion(str) {
-        return str.split('-').slice(1).join('-').split('.').
-            slice(0, -1).join('.').
-            replace(/\.min/, '').
-            replace(/\.pack/, '');
-    }
-
-    function getFiles(cb) {
-        github.repos.getContent({
-            user: 'jquery',
-            repo: 'codeorigin.jquery.com',
-            path: ''
-        }, function(err, res) {
-            if(err) {
-                return cb(err);
-            }
-
-            var sha = res.filter(function(v) {
-                return v.name === 'cdn';
-            })[0].sha;
-
-            github.gitdata.getTree({
-                user: 'jquery',
-                repo: 'codeorigin.jquery.com',
-                sha: sha,
-                recursive: 1
-            }, function(err, res) {
-                if(err) {
+            readDirRecursive(rootPath, function (err, files) {
+                if (err) {
                     return cb(err);
                 }
 
-                if(!res.tree) {
-                    return cb(new Error('Missing tree'));
-                }
-
-                var filtered = res.tree.filter(function(v) {
-                    return v.mode.indexOf('100') === 0;
-                }).map(prop('path'));
-
-                cb(null, filtered);
+                cb(null, parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/'))))
             });
         });
-    }
+    };
 };
+
+const patterns = {
+    'jquery': /^jquery(?:-compat)?-(\d+(\.\d+){0,2}[^.]*)/i,
+    'jquery-ui': /^ui\/(\d+(\.\d+){0,2}[^/]*)/i,
+    'jquery-mobile': /^mobile\/(\d+(\.\d+){0,2}[^/]*)/i,
+    'jquery.migrate': /^jquery-migrate-(\d+(\.\d+){0,2}[^/]*)/i,
+    'jquery.color': /^color\/[^/]*?(\d+(\.\d+){0,2}[^/]*)/i,
+    'qunit': /^qunit\/qunit-(\d+(\.\d+){0,2}[^/]*)/i,
+    'pep': /^pep\/(\d+(\.\d+){0,2}[^/]*)/i,
+};
+
+function parse(files) {
+    var ret = {};
+
+    files.forEach(function (file) {
+        let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
+        let name = _.findKey(patterns, pattern => pattern.test(fName));
+
+        if (name) {
+            let version = fName.match(patterns[name])[1];
+
+            if (!ret[name]) {
+                ret[name] = {
+                    name,
+                    versions: [],
+                    assets: {}
+                }
+            }
+
+            if(!~ret[name].versions.indexOf(version)) {
+                ret[name].versions.push(version);
+            }
+
+            if(!ret[name].assets[version]) {
+                ret[name].assets[version] = [];
+            }
+
+            ret[name].assets[version].push(file);
+        }
+    });
+
+    return _.map(ret, (project) => {
+        // convert to v1 format
+        project.assets = _.map(project.assets, (files, version) => {
+            return { files, version };
+        });
+
+        return project;
+    });
+}

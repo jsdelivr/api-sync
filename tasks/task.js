@@ -16,6 +16,7 @@ var fs = require('fs')
 module.exports = function (output, target, scrape) {
   return function (cb) {
     log.info('Starting to update ' + target + ' data');
+    let eTagMap = {};
 
     scrape(function (err, libraries) {
       if (err) {
@@ -26,14 +27,13 @@ module.exports = function (output, target, scrape) {
       }
 
       libraries = libraries.map(function (library) {
-        library.versions = sortVersions(library.versions);
-
         // skip if library is missing versions for some reason
         if (!library.versions || !library.versions.length) {
           log.warning('Failed to find versions for', library);
           return;
         }
 
+        library.versions = sortVersions(library.versions);
         library.lastversion = library.versions[0];
 
         return library;
@@ -71,13 +71,13 @@ module.exports = function (output, target, scrape) {
           , filePath = _.get(config, ["tasks", target, "filePath"].join("."));
 
         if (gitPath) {
-          _inferEtags(target, gitPath, filePath, cb);
+          _inferEtags(target, gitPath, filePath, eTagMap, cb);
         }
         else {
           cb(err);
         }
       });
-    });
+    }, eTagMap);
   };
 };
 
@@ -85,7 +85,7 @@ function id(a) {
   return a;
 }
 
-function _inferEtags(target, gitPath, filePath, cb) {
+function _inferEtags(target, gitPath, filePath, map, cb) {
 
   var _scope = function (trees, levelPaths, cb) {
 
@@ -114,18 +114,30 @@ function _inferEtags(target, gitPath, filePath, cb) {
     if (!err) {
 
       commit.tree().trees(function (err, trees) {
-
         _scope(trees, filePath.split("/"), function (err, dataDirTree) {
 
           dataDirTree.trees(function (err, projTrees) {
+            var etags;
 
-            var etags = _.map(projTrees, function (projTree) {
-              return {
-                path: projTree.name,
-                etag: "\"" + projTree.id + "\"",
-                sha: projTree.id
-              };
-            });
+            if (Object.keys(map).length) {
+              etags = _.map(map, function (gitPath, path) {
+                let id = (gitPath === '/' ? dataDirTree : _.find(projTrees, tree => tree.name === gitPath)).id;
+
+                return {
+                  path: path,
+                  etag: `"${id}"`,
+                  sha: id
+                };
+              });
+            } else {
+              etags = _.map(projTrees, function (projTree) {
+                return {
+                  path: projTree.name,
+                  etag: "\"" + projTree.id + "\"",
+                  sha: projTree.id
+                };
+              });
+            }
 
             fs.writeFile(etagsFilePath, JSON.stringify(etags), function (err) {
               if (err) {

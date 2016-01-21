@@ -34,7 +34,11 @@ module.exports = {
       interval: 180,
       gitPath: '/home/jsdelivr',
       filePath: 'files'
+    },
+    'jquery': {
+      interval: 180,
+      gitPath: '/home/jquery',
+      filePath: 'cdn'
     }
-    //jquery: {interval: 300}
   }
 };

@@ -62,7 +62,7 @@ function parse(projects, cb) {
       _.each(versions, function(files, version) {
         // ignore info.ini and update.json
         if (typeof files === 'string') return;
-        
+
         proj.versions.push(version);
         proj.assets.push({
           files: files,
@@ -85,9 +85,15 @@ function _hasMaintainers(json) {
 }
 
 function _getGithubRepository(json) {
-  return _.find(json.repositories, function (repository) {
-    return (/github\.com/).test(repository.url);
-  });
+  if (json.repository) {
+    if (/github\.com/.test(json.repository.url)) {
+      return json.repository;
+    }
+  } else {
+    return _.find(json.repositories, function (repository) {
+      return (/github\.com/).test(repository.url);
+    });
+  }
 }
 
 //map cdnjs package.json to jsdelivr api schema
@@ -103,6 +109,14 @@ function parsePackage(path, cb) {
       resp.lastversion = _.result(json, 'version', null);
       resp.homepage = _.result(json, 'homepage', null);
       resp.description = _.result(json, 'description', null);
+
+      if (json.repository) {
+        resp.repositories = [ json.repository ];
+      } else if (json.repositories) {
+        resp.repositories = json.repositories;
+      } else {
+        resp.repositories = [];
+      }
 
       var hasMaintainers = _hasMaintainers(json);
 
