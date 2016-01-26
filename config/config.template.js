@@ -20,7 +20,9 @@ module.exports = {
   },
   tasks: {
     'bootstrap-cdn': {
-      interval: 180
+      interval: 180,
+      gitPath: '/home/bootstrap-cdn',
+      filePath: 'public'
     },
     'google': {
       interval: 180
