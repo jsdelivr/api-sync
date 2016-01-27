@@ -60,8 +60,12 @@ function scrape(data) {
           , homepage = $($libElements[1]).find('a').attr('href')
           , mainfile = $libElements.find('code').text().split('"').slice(-2, -1)[0].split('/').slice(-1)[0]
           , name = $libElements.find('code').text().split('"').slice(-2, -1)[0].split('/')[5]
-          , versions = $versionElements.text().split(",").filter(id).map(trim)
-          , hasMin = $libElements.find('code').text().indexOf('.min.js') !== -1;
+          , hasMin = $libElements.find('code').text().indexOf('.min.js') !== -1
+          , versions = [];
+
+        $versionElements.each(function () {
+          [].push.apply(versions, $(this).text().split(",").filter(id).map(trim));
+        });
 
         ret.push({
           name: name,
