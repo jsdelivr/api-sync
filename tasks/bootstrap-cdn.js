@@ -1,93 +1,133 @@
 'use strict';
 
-var gift = require('gift');
-var path = require('path');
-var readDirRecursive = require('recursive-readdir');
-var _ = require('lodash');
+var fp = require('annofp')
+  , _ = require("lodash")
+  , values = fp.values;
 
-var log = require('../lib/log');
+var log = require('../lib/log')
+  , utils = require('../lib/utils')
+  , mail = require('../lib/mail');
 
-module.exports = function(github, conf) {
-    var repo = gift(conf.gitPath);
+var github;
 
-    return function (cb, eTagMap) {
-        log.info('Pulling changes for the bootstrap repo...');
-        repo.pull(function (err) {
-            var rootPath = path.join(conf.gitPath, conf.filePath);
+module.exports = function (_github) {
 
-            if (err) {
-                cb(err);
-                return log.err('Could not pull repo' + conf.gitPath);
-            }
-            log.info('Done pull...');
+  github = _github;
 
-            readDirRecursive(rootPath, function (err, files) {
-                if (err) {
-                    return cb(err);
-                }
+  return function (cb) {
+    getFiles(function (err, files) {
+      if (err) {
+        var s = 'Failed to update bootstrap data!';
+        log.err(s, err);
+        mail.error(s);
+        return cb(err);
+      }
 
-                cb(null, parse(files.map(function (file) { return path.relative(rootPath, file).replace(/\\/g, '/'); }), eTagMap))
-            });
+      if (files.length) {
+        var objParsed = parse(files);
+
+        // clones sub-array that contains `"name": "twitter-bootstrap"` http://stackoverflow.com/a/15997913/1324588
+        var matchIndex,
+          objBootstrap = [],
+          objFixed = [];
+        objParsed.some(function (entry, i) { //some stops at first match
+          if (entry.name === "twitter-bootstrap") {
+            matchIndex = i;
+            return true;
+          }
         });
-    };
+        objBootstrap = JSON.parse(JSON.stringify(objParsed[matchIndex])); // copys sub-array
+        objBootstrap.name = "bootstrap";
+
+        cb(null, objParsed.concat(objBootstrap));
+      }
+      else {
+        cb(null, []);
+      }
+    });
+  };
 };
 
-var pattern = /^([^/]+)\/(\d+(\.\d+){0,2}[^/]*)/i;
+function getFiles(cb) {
 
-function parse(files, eTagMap) {
-    var ret = {};
+  var repoOwner = "maxcdn"
+    , repoName = "bootstrap-cdn"
+    , rootShaFn = function (v) {
+      return v.name === 'public';
+    };
 
-    files.forEach(function (file) {
-        var fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
+  function _allowed(file) {
+    var _path = file.path;
+    if (!(/100/g).test(file.mode))
+      return false;
+    if (!(/\//g).test(_path))
+      return false;
 
-        if (pattern.test(fName)) {
-            var match = fName.match(pattern);
-            var name = match[1];
-            var version = match[2];
+    // ignore the images and stylesheets and javascripts directories
+    if ((/^images\//).test(_path))
+      return false;
+    if ((/^stylesheets\//).test(_path))
+      return false;
+    if ((/^javascripts\//).test(_path))
+      return false;
 
-            // several projects here, see https://github.com/jsdelivr/api/issues/56
-            if (name === 'bootswatch') {
-                var folder = fName.split('/')[2];
+    return true
+  }
 
-                if (!/fonts|img/i.test(folder)) {
-                    name += '.' + folder;
-                }
-            }
+  utils.githubGetFiles(github, repoOwner, repoName, rootShaFn, function (err, files) {
 
-            if (!ret[name]) {
-                ret[name] = {
-                    name: name,
-                    versions: [],
-                    assets: {}
-                }
-            }
+    if (err) return cb(err);
 
-            if(!~ret[name].versions.indexOf(version)) {
-                ret[name].versions.push(version);
-            }
+    var filtered = _.pluck(_.filter(files, _allowed), "path");
+    cb(null, filtered);
+  });
+}
 
-            if(!ret[name].assets[version]) {
-                ret[name].assets[version] = [];
-            }
+function parse(files) {
+  var ret = {};
 
-            ret[name].assets[version].push(file);
-        }
-    });
+  files.forEach(function (file) {
+    var parts = file.split('/');
+    var name = parts[0];
+    var version = parts[1];
+    var filename = parts.slice(2).join('/');
 
-    _.forEach(ret, function (project) {
-        if (/^bootswatch/i.test(project.name)) {
-            eTagMap[project.name] = 'bootswatch';
-        } else {
-            eTagMap[project.name] = project.name;
-        }
-    });
+    if (!(_.has(ret, name))) {
+      ret[name] = {
+        name: name,
+        versions: [],
+        assets: {} // version -> assets
+      };
+    }
 
-    return _.map(ret, function (project) {
-        // convert to v1 format
-        project.assets = _.map(project.assets, function (files, version) {
-            return { files: files, version: version };
-        });
+    var lib = ret[name];
 
-        return project;
-    });
+    // version
+    if (lib.versions.indexOf(version) === -1) {
+      lib.versions.push(version);
+    }
+
+    // assets
+    if (!(version in lib.assets)) {
+      lib.assets[version] = [];
+    }
+
+    lib.assets[version].push(filename);
+  });
+
+  return values(ret).map(function (v) {
+    // convert assets to v1 format
+    var assets = [];
+
+    fp.each(function (version, files) {
+      assets.push({
+        version: version,
+        files: files
+      });
+    }, v.assets);
+
+    v.assets = assets;
+
+    return v;
+  });
 }
