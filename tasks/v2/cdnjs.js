@@ -36,10 +36,17 @@ export default function (taskConfig, eTagMap) {
 				let json = JSON.parse(data);
 
 				info.mainfile = _.result(json, 'filename', null);
-				info.author = _.result(json, 'author', null);
 				info.lastversion = _.result(json, 'version', null);
 				info.homepage = _.result(json, 'homepage', null);
 				info.description = _.result(json, 'description', null);
+
+				if (_.isString(json.author)) {
+					info.author = json.author;
+				} else if (_.isObject(json.author) && json.author.name) {
+					info.author = json.author.name;
+				} else {
+					info.author = null;
+				}
 
 				if (json.repository) {
 					info.repositories = [ json.repository ];
