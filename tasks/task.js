@@ -1,162 +1,138 @@
-'use strict';
+import path from 'path';
 
-var fs = require('fs')
-  , path = require('path')
-  , mkdirp = require('mkdirp')
-  , _ = require('lodash')
-  , async = require('async')
-  , gift = require('gift')
+import _ from 'lodash';
+import gift from 'gift';
+import Promise from 'bluebird';
 
-  , config = require('../config')
-  , log = require('../lib/log')
-  , mail = require('../lib/mail')
-  , sortVersions = require('../lib/sort_versions')
-  , gitUtils = require('../lib/git-utils');
+import log from '../lib/log';
+import mail from '../lib/mail';
+import sortVersions from '../lib/sort-versions';
 
-module.exports = function (output, target, scrape) {
-  return function (cb) {
-    log.info('Starting to update ' + target + ' data');
-    var eTagMap = {};
+let fs = Promise.promisifyAll(require('fs-extra'));
 
-    scrape(function (err, libraries) {
-      if (err) {
-        var s = 'Failed to update ' + target + ' data!';
-        log.err(s, err);
-        mail.error(s);
-        return cb(err);
-      }
+export default function (name, taskConfig, output) {
+	return Promise.try(() => {
+		log.info(`Starting to update ${name} data...`);
+		let eTagMap = {};
+		let successCount = 0;
+		let errorCount = 0;
 
-      libraries = libraries.map(function (library) {
-        // skip if library is missing versions for some reason
-        if (!library.versions || !library.versions.length) {
-          log.warning('Failed to find versions for', library);
-          return;
-        }
+		return require('./' + name)(taskConfig, eTagMap).then((libraries) => {
+			libraries = libraries.map((library) => {
+				// skip if library is missing versions for some reason
+				if (!library.versions || !library.versions.length) {
+					log.warning(`Failed to find versions for ${library.name}`);
 
-        library.versions = sortVersions(library.versions);
-        library.lastversion = library.versions[0];
+					// remove the library from the etag map as well
+					if (taskConfig.gitPath) {
+						delete eTagMap[library.name];
+					} else {
+						delete eTagMap.data[library.name];
+					}
 
-        return library;
-      }).filter(id);
+					return;
+				}
 
-      var syncedCount = 0
-        , errorCount = 0;
-      async.eachLimit(libraries, 50, function (library, done) {
+				library.versions = sortVersions(library.versions);
+				library.lastversion = library.versions[0];
 
-        var p = path.resolve(__dirname, '../', output, target, library.name, 'library.json')
-          , s = JSON.stringify(library);
+				return library;
+			}).filter(library => library);
 
-        mkdirp(path.dirname(p), function (direrr) {
-          fs.writeFile(p, s, function (err) {
-            if (direrr || err) {
-              errorCount++;
-              log.err("Error writing file for library " + library.name, direrr || err);
-            }
-            else {
-              syncedCount++;
-              log.info("Successfully synced CDN:library " + target + ":" + library.name);
-            }
-            done();
-          });
-        });
-      }, function (err) {
-        if (err) {
-          log.err("Error syncing CDN " + target, err);
-        }
-        else {
-          log.info("Synced CDN " + target + ", successfully updated " + syncedCount + " libraries and failed to update " + errorCount + " libraries.");
-        }
+			return Promise.map(libraries, (library) => {
+				let p = path.resolve(__dirname, '../', output, name, library.name, 'library.json');
+				let s = JSON.stringify(library);
 
-        var gitPath = _.get(config, ["tasks", target, "gitPath"].join("."))
-          , filePath = _.get(config, ["tasks", target, "filePath"].join("."));
+				return fs.mkdirpAsync(path.dirname(p)).then(() => {
+					return fs.writeFileAsync(p, s)
+				}).then(() => {
+					successCount++;
+					log.info(`Successfully synced CDN:library ${name}:${library.name}`);
+				}).catch((error) => {
+					error++;
+					log.err(`Error writing file for ${name}:${library.name}`);
+					log.err(error);
+				});
+			}, { concurrency: 50 }).catch((error) => {
+				log.err(`Error syncing CDN ${name}`);
+				log.err(error);
+			});
+		}).then(() => {
+			log.info(`Synced CDN ${name}, successfully updated ${successCount} libraries and failed to update ${errorCount} libraries`);
 
-        if (gitPath) {
-          _inferEtags(target, gitPath, filePath, eTagMap, cb);
-        }
-        else {
-          cb(err);
-        }
-      });
-    }, eTagMap);
-  };
+			if (taskConfig.gitPath) {
+				return inferEtags(name, taskConfig.gitPath, taskConfig.filePath, eTagMap);
+			}
+
+			let etagsFilePath = path.resolve(__dirname, '../data/', `${name}.json`);
+
+			return fs.writeFileAsync(etagsFilePath, JSON.stringify(eTagMap.data)).then(() => {
+				log.info(`${name} etags saved to ${etagsFilePath}`);
+			}).catch(() => {
+				log.err(`Failed to save ${name} etags`);
+				log.err(err);
+			});
+		}).catch((error) => {
+			let message = `Failed to update ${name} data`;
+
+			log.err(name);
+			log.err(error);
+			mail.error(message);
+
+			throw error;
+		});
+	});
 };
 
-function id(a) {
-  return a;
-}
+function inferEtags (target, gitPath, filePath, map) {
+	let scope = (trees, levelPaths, cb) => {
+		let levelPath = levelPaths[0];
+		let dataDirTree = _.find(trees, { name: levelPath });
 
-function _inferEtags(target, gitPath, filePath, map, cb) {
+		if (levelPaths.length === 1) {
+			cb(null, dataDirTree)
+		} else {
+			dataDirTree.trees((err, trees) => {
+				if (!err) {
+					scope(trees, levelPaths.slice(1), cb);
+				} else {
+					cb(err);
+				}
+			});
+		}
+	};
 
-  var _scope = function (trees, levelPaths, cb) {
+	return new Promise((resolve, reject) => {
+		let repo = gift(gitPath);
+		let etagsFilePath = path.resolve(__dirname, '../data/', `${target}.json`);
 
-    var levelPath = levelPaths[0]
-      , dataDirTree = _.find(trees, {name: levelPath});
-    if (levelPaths.length === 1) {
-      cb(null, dataDirTree)
-    }
-    else {
-      dataDirTree.trees(function (err, trees) {
-        if (!err) {
-          _scope(trees, levelPaths.slice(1), cb);
-        }
-        else {
-          cb(err);
-        }
-      });
-    }
-  };
+		repo.current_commit((err, commit) => {
+			if (!err) {
+				commit.tree().trees((err, trees) => {
+					scope(trees, filePath.split('/'), (err, dataDirTree) => {
+						dataDirTree.trees((err, projTrees) => {
+							let etags = _.map(map, (gitPath, path) => {
+								let id = (gitPath === '/' ? dataDirTree : _.find(projTrees, tree => tree.name === gitPath)).id;
 
-  // write local git 'etags'
-  var repo = gift(gitPath)
-    , etagsFilePath = path.resolve(__dirname, "../data/" + target + ".json");
+								return {
+									path,
+									etag: `"${id}"`,
+									sha: id,
+								};
+							});
 
-  repo.current_commit(function (err, commit) {
-    if (!err) {
-
-      commit.tree().trees(function (err, trees) {
-        _scope(trees, filePath.split("/"), function (err, dataDirTree) {
-
-          dataDirTree.trees(function (err, projTrees) {
-            var etags;
-
-            if (Object.keys(map).length) {
-              etags = _.map(map, function (gitPath, path) {
-                var id = (gitPath === '/' ? dataDirTree : _.find(projTrees, function (tree) { return tree.name === gitPath; })).id;
-
-                return {
-                  path: path,
-                  etag: '"' + id + '"',
-                  sha: id
-                };
-              });
-            } else {
-              etags = _.map(projTrees, function (projTree) {
-                return {
-                  path: projTree.name,
-                  etag: "\"" + projTree.id + "\"",
-                  sha: projTree.id
-                };
-              });
-            }
-
-            fs.writeFile(etagsFilePath, JSON.stringify(etags), function (err) {
-              if (err) {
-                log.err("failed to save " + target + " etags ", err);
-              } else {
-                log.info(target + " etags saved to " + etagsFilePath);
-              }
-
-              // don't err out if the etags don't save, just log it
-              cb();
-            });
-          });
-        });
-      }, function (err) {
-        cb(err);
-      });
-    }
-    else {
-      cb(err);
-    }
-  });
+							fs.writeFileAsync(etagsFilePath, JSON.stringify(etags)).then(() => {
+								log.info(`${target} etags saved to ${etagsFilePath}`);
+							}).catch(() => {
+								log.err(`Failed to save ${target} etags`);
+								log.err(err);
+							}).finally(resolve);
+						});
+					});
+				}, reject);
+			} else {
+				reject(err);
+			}
+		});
+	});
 }
