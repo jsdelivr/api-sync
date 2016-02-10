@@ -60,7 +60,7 @@ function parse(files, taskConfig, eTagMap) {
 			}
 
 			if(!libraries[name].assets[version]) {
-				let bp = fName.split('/').slice(0, name.indexOf('bootswatch') === 0 ? 3 : 2).join('/');
+				let bp = fName.split('/').slice(0, name.indexOf('bootswatch.') === 0 ? 3 : 2).join('/');
 
 				libraries[name].assets[version] = {
 					baseUrl: `${taskConfig.cdnRoot}/${bp}/`,
