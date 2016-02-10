@@ -63,6 +63,7 @@ export default function (taskConfig, eTagMap) {
 
 					if (!_.includes(files, 'mainfile')) {
 						project.assets[version] = {
+							baseUrl: `${taskConfig.cdnRoot}/${project.name}/${version}/`,
 							files: files,
 							mainfile: info.mainfile,
 						};

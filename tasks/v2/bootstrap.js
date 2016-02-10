@@ -21,59 +21,65 @@ export default function (taskConfig, eTagMap) {
 		log.err(`Could not pull repo ${taskConfig.gitPath}`);
 		throw error;
 	}).then(function (files) {
-		return parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/')), eTagMap);
+		return parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/')), taskConfig, eTagMap);
 	}).filter(project => project);
 }
 
 let pattern = /^([^/]+)\/(\d+(\.\d+){0,2}[^/]*)/i;
 
-function parse(files, eTagMap) {
-    let libraries = {};
+function parse(files, taskConfig, eTagMap) {
+	let libraries = {};
 
 	_.forEach(files, (file) => {
-        let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
+		let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
 
-        if (pattern.test(fName)) {
-            let match = fName.match(pattern);
-            let name = match[1];
-            let version = match[2];
+		if (pattern.test(fName)) {
+			let match = fName.match(pattern);
+			let name = match[1];
+			let version = match[2];
 
-            // several projects here, see https://github.com/jsdelivr/api/issues/56
-            if (name === 'bootswatch') {
-                let folder = fName.split('/')[2];
+			// several projects here, see https://github.com/jsdelivr/api/issues/56
+			if (name === 'bootswatch') {
+				let folder = fName.split('/')[2];
 
-                if (!/fonts|img/i.test(folder)) {
-                    name += '.' + folder;
-                }
-            }
+				if (!/fonts|img/i.test(folder)) {
+					name += '.' + folder;
+				}
+			}
 
-            if (!libraries[name]) {
-                libraries[name] = {
-                    name: name,
-                    versions: [],
-                    assets: {},
-                }
-            }
+			if (!libraries[name]) {
+				libraries[name] = {
+					name: name,
+					versions: [],
+					assets: {},
+				}
+			}
 
-            if(!~libraries[name].versions.indexOf(version)) {
-                libraries[name].versions.push(version);
-            }
+			if(!~libraries[name].versions.indexOf(version)) {
+				libraries[name].versions.push(version);
+			}
 
-            if(!libraries[name].assets[version]) {
-                libraries[name].assets[version] = { files: [], mainfile: '' };
-            }
+			if(!libraries[name].assets[version]) {
+				let bp = fName.split('/').slice(0, name.indexOf('bootswatch.') === 0 ? 3 : 2).join('/');
 
-            libraries[name].assets[version].files.push(file.substr(name.length + version.length + 2));
-        }
-    });
+				libraries[name].assets[version] = {
+					baseUrl: `${taskConfig.cdnRoot}/${bp}/`,
+					files: [],
+					mainfile: '',
+				};
+			}
 
-    _.forEach(libraries, (project) => {
-        if (/^bootswatch/i.test(project.name)) {
-            eTagMap[project.name] = 'bootswatch';
-        } else {
-            eTagMap[project.name] = project.name;
-        }
-    });
+			libraries[name].assets[version].files.push(file.substr(name.length + version.length + 2));
+		}
+	});
 
-    return _.values(libraries);
+	_.forEach(libraries, (project) => {
+		if (/^bootswatch/i.test(project.name)) {
+			eTagMap[project.name] = 'bootswatch';
+		} else {
+			eTagMap[project.name] = project.name;
+		}
+	});
+
+	return _.values(libraries);
 }
