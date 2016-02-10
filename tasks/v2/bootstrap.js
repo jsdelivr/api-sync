@@ -21,13 +21,13 @@ export default function (taskConfig, eTagMap) {
 		log.err(`Could not pull repo ${taskConfig.gitPath}`);
 		throw error;
 	}).then(function (files) {
-		return parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/')), eTagMap);
+		return parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/')), taskConfig, eTagMap);
 	}).filter(project => project);
 }
 
 let pattern = /^([^/]+)\/(\d+(\.\d+){0,2}[^/]*)/i;
 
-function parse(files, eTagMap) {
+function parse(files, taskConfig, eTagMap) {
     let libraries = {};
 
 	_.forEach(files, (file) => {
@@ -60,7 +60,13 @@ function parse(files, eTagMap) {
             }
 
             if(!libraries[name].assets[version]) {
-                libraries[name].assets[version] = { files: [], mainfile: '' };
+	            let bp = fName.split('/').slice(0, name.indexOf('bootswatch') === 0 ? 3 : 2).join('/');
+
+                libraries[name].assets[version] = {
+                    baseUrl: `${taskConfig.cdnRoot}/${bp}/`,
+	                files: [],
+	                mainfile: '',
+                };
             }
 
             libraries[name].assets[version].files.push(file.substr(name.length + version.length + 2));

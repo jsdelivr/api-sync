@@ -89,7 +89,12 @@ export default function (taskConfig, eTagMap) {
 					}
 
 					project.versions.push(version);
-					project.assets[version] = { files, mainfile: info.mainfile };
+
+					project.assets[version] = {
+						baseUrl: `${taskConfig.cdnRoot}/${name}/${version}/`,
+						files,
+						mainfile: info.mainfile,
+					};
 				});
 
 				delete versions['package.json'];

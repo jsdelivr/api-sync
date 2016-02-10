@@ -39,7 +39,7 @@ export default function (taskConfig, eTagMap) {
 						mainfile,
 						homepage,
 						versions,
-						assets: getAssets(mainfile, versions, hasMin),
+						assets: getAssets(mainfile, versions, hasMin, taskConfig),
 					});
 				} catch (error) {
 					log.err(`Error parsing google data`);
@@ -60,7 +60,7 @@ export default function (taskConfig, eTagMap) {
 	});
 }
 
-function getAssets (mainfile, versions, hasMin) {
+function getAssets (mainfile, versions, hasMin, taskConfig) {
 	var name = path.basename(path.basename(mainfile, path.extname(mainfile)), '.min');
 	var extensions = [ 'js' ];
 
@@ -70,6 +70,7 @@ function getAssets (mainfile, versions, hasMin) {
 
 	return _.fromPairs(versions.map((version) => {
 		return [ version, {
+            baseUrl: `${taskConfig.cdnRoot}/${name}/${version}/`,
 			mainfile,
 			files: extensions.map(extension => `${name}.${extension}`),
 		}];

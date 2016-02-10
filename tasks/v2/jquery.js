@@ -29,7 +29,7 @@ export default function (taskConfig, eTagMap) {
 		log.err(`Could not pull repo ${taskConfig.gitPath}`);
 		throw error;
 	}).then(function (files) {
-		return parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/')));
+		return parse(files.map(file => path.relative(rootPath, file).replace(/\\/g, '/')), taskConfig);
 	}).filter(project => project);
 }
 
@@ -43,7 +43,17 @@ let patterns = {
     'pep': /^pep\/(\d+(\.\d+){0,2}[^/]*)/i,
 };
 
-function parse(files) {
+let basePaths = {
+	'jquery': 0,
+    'jquery-ui': 2,
+    'jquery-mobile': 2,
+    'jquery.migrate': 0,
+    'jquery.color': 1,
+    'qunit': 1,
+    'pep': 2,
+};
+
+function parse(files, taskConfig) {
     let libraries = {};
 
 	_.forEach(files, (file) => {
@@ -66,12 +76,26 @@ function parse(files) {
             }
 
             if(!libraries[name].assets[version]) {
-                libraries[name].assets[version] = { files: [], mainfile: '' };
+                libraries[name].assets[version] = {
+                    baseUrl: `${taskConfig.cdnRoot}/${getBasePath(name, file)}`,
+	                files: [],
+	                mainfile: '',
+                };
             }
 
-            libraries[name].assets[version].files.push(file);
+            libraries[name].assets[version].files.push(file.substr(getBasePath(name, file).length));
         }
     });
 
     return _.values(libraries);
+}
+
+function getBasePath (project, file) {
+	let bp = file;
+
+	for (let i = 0; i < basePaths[project]; i++) {
+		file = file.replace(/^[^/]+\//, '');
+	}
+
+	return bp.substr(0, bp.length - file.length);
 }
