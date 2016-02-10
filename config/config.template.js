@@ -19,26 +19,20 @@ export default {
 	},
 	tasks: {
 		v1: {
-			google: {
-				cdnRoot: 'https://ajax.googleapis.com/ajax/libs',
-			},
+			google: {},
 			bootstrap: {
-				cdnRoot: 'https://maxcdn.bootstrapcdn.com',
 				gitPath: 'home/bootstrap-cdn',
 				filePath: 'public',
 			},
 			jquery: {
-				cdnRoot: 'https://code.jquery.com',
 				gitPath: 'home/codeorigin.jquery.com',
 				filePath: 'cdn',
 			},
 			jsdelivr: {
-				cdnRoot: 'https://cdn.jsdelivr.net',
 				gitPath: 'home/jsdelivr',
 				filePath: 'files',
 			},
 			cdnjs: {
-				cdnRoot: 'https://cdnjs.cloudflare.com/ajax/libs',
 				gitPath: 'home/cdnjs',
 				filePath: 'ajax/libs',
 			},
