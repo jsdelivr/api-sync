@@ -34,50 +34,50 @@ export default function (taskConfig, eTagMap) {
 }
 
 let patterns = {
-    'jquery': /^jquery(?:-compat)?-(\d+(\.\d+){0,2}[^.]*)/i,
-    'jquery-ui': /^ui\/(\d+(\.\d+){0,2}[^/]*)/i,
-    'jquery-mobile': /^mobile\/(\d+(\.\d+){0,2}[^/]*)/i,
-    'jquery.migrate': /^jquery-migrate-(\d+(\.\d+){0,2}[^/]*)/i,
-    'jquery.color': /^color\/[^/]*?(\d+(\.\d+){0,2}[^/]*)/i,
-    'qunit': /^qunit\/qunit-(\d+(\.\d+){0,2}[^/]*)/i,
-    'pep': /^pep\/(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery': /^jquery(?:-compat)?-(\d+(\.\d+){0,2}[^.]*)/i,
+	'jquery-ui': /^ui\/(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery-mobile': /^mobile\/(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery.migrate': /^jquery-migrate-(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery.color': /^color\/[^/]*?(\d+(\.\d+){0,2}[^/]*)/i,
+	'qunit': /^qunit\/qunit-(\d+(\.\d+){0,2}[^/]*)/i,
+	'pep': /^pep\/(\d+(\.\d+){0,2}[^/]*)/i,
 };
 
 function parse(files) {
-    let libraries = {};
+	let libraries = {};
 
 	_.forEach(files, (file) => {
-        let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
-        let name = _.findKey(patterns, pattern => pattern.test(fName));
+		let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
+		let name = _.findKey(patterns, pattern => pattern.test(fName));
 
-        if (name) {
-            let version = fName.match(patterns[name])[1];
+		if (name) {
+			let version = fName.match(patterns[name])[1];
 
-            if (!libraries[name]) {
-                libraries[name] = {
-                    name,
-                    versions: [],
-                    assets: {}
-                }
-            }
+			if (!libraries[name]) {
+				libraries[name] = {
+					name,
+					versions: [],
+					assets: {}
+				}
+			}
 
-            if(!~libraries[name].versions.indexOf(version)) {
-                libraries[name].versions.push(version);
-            }
+			if(!~libraries[name].versions.indexOf(version)) {
+				libraries[name].versions.push(version);
+			}
 
-            if(!libraries[name].assets[version]) {
-                libraries[name].assets[version] = [];
-            }
+			if(!libraries[name].assets[version]) {
+				libraries[name].assets[version] = [];
+			}
 
-            libraries[name].assets[version].push(file);
-        }
-    });
+			libraries[name].assets[version].push(file);
+		}
+	});
 
-    return _.map(libraries, (library) => {
-        library.assets = _.map(library.assets, (files, version) => {
-            return { files, version, mainfile: '' };
-        });
+	return _.map(libraries, (library) => {
+		library.assets = _.map(library.assets, (files, version) => {
+			return { files, version, mainfile: '' };
+		});
 
-        return library;
-    });
+		return library;
+	});
 }

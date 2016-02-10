@@ -70,7 +70,7 @@ function getAssets (mainfile, versions, hasMin, taskConfig) {
 
 	return _.fromPairs(versions.map((version) => {
 		return [ version, {
-            baseUrl: `${taskConfig.cdnRoot}/${name}/${version}/`,
+			baseUrl: `${taskConfig.cdnRoot}/${name}/${version}/`,
 			mainfile,
 			files: extensions.map(extension => `${name}.${extension}`),
 		}];

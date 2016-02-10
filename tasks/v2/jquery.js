@@ -34,60 +34,60 @@ export default function (taskConfig, eTagMap) {
 }
 
 let patterns = {
-    'jquery': /^jquery(?:-compat)?-(\d+(\.\d+){0,2}[^.]*)/i,
-    'jquery-ui': /^ui\/(\d+(\.\d+){0,2}[^/]*)/i,
-    'jquery-mobile': /^mobile\/(\d+(\.\d+){0,2}[^/]*)/i,
-    'jquery.migrate': /^jquery-migrate-(\d+(\.\d+){0,2}[^/]*)/i,
-    'jquery.color': /^color\/[^/]*?(\d+(\.\d+){0,2}[^/]*)/i,
-    'qunit': /^qunit\/qunit-(\d+(\.\d+){0,2}[^/]*)/i,
-    'pep': /^pep\/(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery': /^jquery(?:-compat)?-(\d+(\.\d+){0,2}[^.]*)/i,
+	'jquery-ui': /^ui\/(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery-mobile': /^mobile\/(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery.migrate': /^jquery-migrate-(\d+(\.\d+){0,2}[^/]*)/i,
+	'jquery.color': /^color\/[^/]*?(\d+(\.\d+){0,2}[^/]*)/i,
+	'qunit': /^qunit\/qunit-(\d+(\.\d+){0,2}[^/]*)/i,
+	'pep': /^pep\/(\d+(\.\d+){0,2}[^/]*)/i,
 };
 
 let basePaths = {
 	'jquery': 0,
-    'jquery-ui': 2,
-    'jquery-mobile': 2,
-    'jquery.migrate': 0,
-    'jquery.color': 1,
-    'qunit': 1,
-    'pep': 2,
+	'jquery-ui': 2,
+	'jquery-mobile': 2,
+	'jquery.migrate': 0,
+	'jquery.color': 1,
+	'qunit': 1,
+	'pep': 2,
 };
 
 function parse(files, taskConfig) {
-    let libraries = {};
+	let libraries = {};
 
 	_.forEach(files, (file) => {
-        let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
-        let name = _.findKey(patterns, pattern => pattern.test(fName));
+		let fName = file.replace(/(?:\.min|\.pack)?\.\w+$/i, '');
+		let name = _.findKey(patterns, pattern => pattern.test(fName));
 
-        if (name) {
-            let version = fName.match(patterns[name])[1];
+		if (name) {
+			let version = fName.match(patterns[name])[1];
 
-            if (!libraries[name]) {
-                libraries[name] = {
-                    name,
-                    versions: [],
-                    assets: {}
-                }
-            }
+			if (!libraries[name]) {
+				libraries[name] = {
+					name,
+					versions: [],
+					assets: {}
+				}
+			}
 
-            if(!~libraries[name].versions.indexOf(version)) {
-                libraries[name].versions.push(version);
-            }
+			if(!~libraries[name].versions.indexOf(version)) {
+				libraries[name].versions.push(version);
+			}
 
-            if(!libraries[name].assets[version]) {
-                libraries[name].assets[version] = {
-                    baseUrl: `${taskConfig.cdnRoot}/${getBasePath(name, file)}`,
-	                files: [],
-	                mainfile: '',
-                };
-            }
+			if(!libraries[name].assets[version]) {
+				libraries[name].assets[version] = {
+					baseUrl: `${taskConfig.cdnRoot}/${getBasePath(name, file)}`,
+					files: [],
+					mainfile: '',
+				};
+			}
 
-            libraries[name].assets[version].files.push(file.substr(getBasePath(name, file).length));
-        }
-    });
+			libraries[name].assets[version].files.push(file.substr(getBasePath(name, file).length));
+		}
+	});
 
-    return _.values(libraries);
+	return _.values(libraries);
 }
 
 function getBasePath (project, file) {
