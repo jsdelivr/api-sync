@@ -48,7 +48,10 @@ function serve (config) {
 
 			if (req.body && req.body.ref && req.body.ref === 'refs/heads/master') {
 				log.info(`Webhook received for push to jsDelivr master branch - begin jsdelivr update`);
-				runTask('jsdelivr');
+
+				runTask('v2/jsdelivr').then(() => {
+					return runTask('v1/jsdelivr');
+				});
 			} else {
 				log.info(`Webhook received for push to jsDelivr branch other than master - do not begin jsdelivr update`);
 			}
