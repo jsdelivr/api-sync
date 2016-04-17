@@ -70,7 +70,7 @@ export default function (taskConfig, eTagMap) {
 					} else {
 						_.pull(files, 'mainfile');
 
-						return fs.readFileAsync(path.join(taskConfig.gitPath, taskConfig.filePath || '', name, version, 'mainfile')).then((f) => {
+						return fs.readFileAsync(path.join(taskConfig.gitPath, taskConfig.filePath || '', name, version, 'mainfile'), 'utf8').then((f) => {
 							project.assets[version] = {
 								files: files,
 								mainfile: f,
